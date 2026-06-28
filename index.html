@@ -1,0 +1,3320 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Từ điển đa ngữ offline — Anh ↔ Việt · Pháp ↔ Việt · Hàn ↔ Anh · Hán ↔ Việt. HTML5 SPA.">
+<meta name="theme-color" content="#1a73e8">
+<title>Từ điển đa ngữ</title>
+<style>
+/* ============== DESIGN SYSTEM ============== */
+/* Light mode default = giấy sách (paper) */
+:root {
+  --bg: #f4ecd8;          /* giấy sách ngả vàng */
+  --bg-elevated: #fbf5e4; /* trang giấy */
+  --bg-soft: #efe5cb;     /* chỗ nổi nhẹ */
+  --bg-hover: #e6d9b5;    /* hover */
+  --border: #d9cba6;
+  --border-strong: #bda770;
+  --text: #2a1f0c;        /* mực nâu đậm */
+  --text-muted: #5b4a2a;
+  --text-subtle: #8a734a;
+  --accent: #8b1e1e;      /* đỏ son Trung Quốc */
+  --accent-hover: #6e1717;
+  --accent-soft: #f5e3d3;
+  --en: #1a5fb4;
+  --fr: #c01e1e;
+  --vi: #2e7d32;
+  --ko: #a028a8;
+  --hv: #b45309;
+  --shadow-sm: 0 1px 2px rgba(60,30,10,.06);
+  --shadow-md: 0 4px 12px rgba(60,30,10,.10);
+  --shadow-lg: 0 12px 32px rgba(60,30,10,.14);
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --font-ui: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', system-ui, sans-serif;
+  --font-text: 'Segoe UI', Roboto, 'Helvetica Neue', system-ui, sans-serif;
+  --font-mono: 'SF Mono', 'JetBrains Mono', Consolas, monospace;
+}
+/* Dark mode = tương phản cao, dễ đọc */
+[data-theme="dark"] {
+  --bg: #0b0e14;          /* nền sâu */
+  --bg-elevated: #161b26; /* card nổi */
+  --bg-soft: #1f2533;
+  --bg-hover: #2a3142;
+  --border: #2f384a;
+  --border-strong: #4a5670;
+  --text: #f0f3f8;        /* text gần trắng */
+  --text-muted: #c3cad6;  /* muted sáng hơn nhiều */
+  --text-subtle: #94a0b4; /* subtle sáng hơn */
+  --accent: #7cc4ff;      /* accent sáng */
+  --accent-hover: #a8d8ff;
+  --accent-soft: #1c2c45;
+  --en: #6cb6ff;
+  --fr: #ff8a8a;
+  --vi: #7ed87e;
+  --ko: #e07ee0;
+  --hv: #ffb84d;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,.45);
+  --shadow-md: 0 4px 12px rgba(0,0,0,.55);
+  --shadow-lg: 0 12px 32px rgba(0,0,0,.65);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body {
+  font-family: var(--font-ui);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 15px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  transition: background .2s, color .2s;
+}
+button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+input { font-family: inherit; }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* ============== LAYOUT ============== */
+.app {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* HEADER */
+.header {
+  background: var(--bg-elevated);
+  border-bottom: 1px solid var(--border);
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 46px;
+  box-shadow: var(--shadow-sm);
+  z-index: 10;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+}
+.header::-webkit-scrollbar { height: 4px; }
+.header::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 2px; }
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  font-size: 14px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.brand .logo {
+  width: 26px; height: 26px;
+  background: linear-gradient(135deg, var(--en), var(--fr) 25%, var(--vi) 50%, var(--ko) 75%, var(--hv));
+  border-radius: 6px;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: -1px;
+}
+.brand .title { color: var(--text); }
+.brand .subtitle { display: none; color: var(--text-muted); font-size: 11px; font-weight: 500; }
+
+.lang-tabs {
+  display: flex;
+  gap: 2px;
+  background: var(--bg-soft);
+  padding: 3px;
+  border-radius: var(--radius-md);
+  flex-shrink: 0;
+}
+.lang-tab {
+  padding: 4px 9px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: all .15s;
+  white-space: nowrap;
+}
+.lang-tab small { font-size: 10px; font-weight: 500; opacity: .7; }
+.lang-tab:hover { color: var(--text); }
+.lang-tab.active {
+  background: var(--bg-elevated);
+  color: var(--text);
+  box-shadow: var(--shadow-sm);
+}
+.lang-tab .dot {
+  width: 8px; height: 8px; border-radius: 50%;
+}
+.lang-tab[data-lang="av"] .dot { background: var(--en); }
+.lang-tab[data-lang="pv"] .dot { background: var(--fr); }
+.lang-tab[data-lang="ek"] .dot { background: var(--en); }
+.lang-tab[data-lang="ke"] .dot { background: var(--ko); }
+.lang-tab[data-lang="hv"] .dot { background: var(--hv); }
+.lang-tab[data-lang="hv2"] .dot { background: #c2410c; }
+.lang-tab[data-lang="all"] .dot {
+  background: linear-gradient(135deg, var(--en) 0%, var(--fr) 25%, var(--vi) 50%, var(--ko) 75%, var(--hv) 100%);
+}
+
+.header-actions { margin-left: auto; display: flex; gap: 4px; align-items: center; flex-shrink: 0; }
+.icon-btn {
+  width: 30px; height: 30px;
+  display: grid; place-items: center;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  transition: all .15s;
+  flex-shrink: 0;
+}
+.icon-btn:hover { background: var(--bg-soft); color: var(--text); }
+.icon-btn svg { width: 16px; height: 16px; }
+
+/* MAIN */
+:root {
+  --sidebar-w: 260px;  /* default sidebar width; user can drag to resize */
+}
+.main {
+  display: grid;
+  grid-template-columns: var(--sidebar-w) 6px 1fr;
+  overflow: hidden;
+}
+
+/* Resize handle between sidebar and content */
+.resize-handle {
+  background: transparent;
+  cursor: col-resize;
+  position: relative;
+  z-index: 5;
+  user-select: none;
+  transition: background .15s;
+}
+.resize-handle::before {
+  content: '';
+  position: absolute;
+  left: 2px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--border);
+  transition: background .15s;
+}
+.resize-handle:hover::before,
+.resize-handle.dragging::before {
+  background: var(--accent);
+  width: 3px;
+  left: 1.5px;
+}
+
+/* SIDEBAR (search panel) */
+.sidebar {
+  background: var(--bg-elevated);
+  border-right: 1px solid var(--border);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-width: 200px;
+}
+
+.search-panel-header {
+  padding: 6px 8px 6px;
+  border-bottom: 1px solid var(--border);
+}
+.search-wrap-side {
+  position: relative;
+}
+.search-input-side {
+  width: 100%;
+  padding: 5px 30px 5px 28px;
+  border: 1.5px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  font-size: 12px;
+  font-weight: 500;
+  background: var(--bg-elevated);
+  color: var(--text);
+  transition: all .15s;
+  outline: none;
+}
+.search-input-side:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-soft);
+}
+.search-input-side::placeholder { color: var(--text-subtle); font-weight: 400; }
+.search-icon-side {
+  position: absolute;
+  left: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-subtle);
+  width: 14px; height: 14px;
+  pointer-events: none;
+}
+.search-clear-side {
+  position: absolute;
+  right: 5px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  background: var(--bg-soft);
+  color: var(--text-muted);
+  display: none;
+  place-items: center;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1;
+}
+.search-clear-side.visible { display: grid; }
+.search-clear-side:hover { background: var(--bg-hover); color: var(--text); }
+
+.sidebar-tabs {
+  display: flex;
+  background: var(--bg-soft);
+  border-bottom: 1px solid var(--border);
+}
+.sidebar-tab {
+  flex: 1;
+  padding: 9px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  border-bottom: 2px solid transparent;
+  transition: all .15s;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.sidebar-tab:hover { color: var(--text); }
+.sidebar-tab.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+  background: var(--bg-elevated);
+}
+.sidebar-tab .badge {
+  display: inline-block;
+  min-width: 18px;
+  padding: 1px 5px;
+  border-radius: 999px;
+  background: var(--bg-hover);
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+.sidebar-tab.active .badge { background: var(--accent-soft); color: var(--accent); }
+
+.sidebar-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 6px;
+}
+.sidebar-list .list-item {
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 16px;
+  cursor: pointer;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: background .12s;
+  border: none;
+  width: 100%;
+  text-align: left;
+}
+.sidebar-list .list-item:hover { background: var(--bg-soft); }
+.sidebar-list .list-item.selected { background: var(--accent-soft); }
+.sidebar-list .list-item .lang-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.sidebar-list .list-item .lang-dot.en { background: var(--en); }
+.sidebar-list .list-item .lang-dot.fr { background: var(--fr); }
+.sidebar-list .list-item .lang-dot.ko { background: var(--ko); }
+.sidebar-list .list-item .lang-dot.hv { background: var(--hv); }
+.sidebar-list .list-item .lang-dot.hv2 { background: #c2410c; }
+.sidebar-list .list-item .word-text {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: .2px;
+}
+.sidebar-list .list-item .word-text.cjk { font-size: 24px; font-weight: 700; }
+.sidebar-list .list-item mark { background: transparent; color: var(--accent); font-weight: 700; }
+.sidebar-list .list-item .word-preview {
+  display: none;  /* hide file-path-like preview (e.g. "go.wav [US]...") for cleaner list */
+  color: var(--text-subtle);
+  font-size: 12px;
+  margin-left: auto;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.sidebar-list .list-item .word-remove {
+  opacity: 0;
+  color: var(--text-subtle);
+  font-size: 16px;
+  width: 18px; height: 18px;
+  display: grid; place-items: center;
+  flex-shrink: 0;
+  border-radius: 50%;
+}
+.sidebar-list .list-item:hover .word-remove { opacity: 1; }
+.sidebar-list .list-item .word-remove:hover { color: var(--fr); background: var(--bg-hover); }
+
+.sidebar-list .list-section-title {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  color: var(--text-subtle);
+  padding: 10px 10px 6px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.sidebar-list .list-section-title .clear-btn {
+  font-size: 10px;
+  color: var(--text-subtle);
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
+}
+.sidebar-list .list-section-title .clear-btn:hover { color: var(--accent); }
+
+.list-empty {
+  color: var(--text-subtle);
+  font-size: 12px;
+  padding: 24px 16px;
+  text-align: center;
+  font-style: italic;
+  line-height: 1.6;
+}
+.list-empty .hint {
+  display: block;
+  font-size: 11px;
+  margin-top: 6px;
+  color: var(--text-subtle);
+  font-style: normal;
+}
+
+/* CONTENT */
+.content {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+/* RESULT */
+.result {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px 32px 80px;
+}
+.result-inner { max-width: 1280px; margin: 0 auto; }
+
+.entry-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+.entry-headword {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -.5px;
+}
+.entry-lang-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+}
+.entry-lang-badge.en { background: var(--accent-soft); color: var(--en); }
+.entry-lang-badge.fr { background: #fde8e8; color: var(--fr); }
+.entry-lang-badge.ko { background: #f5e8fd; color: var(--ko); }
+.entry-lang-badge.hv { background: #fef3c7; color: var(--hv); }
+.entry-lang-badge.hv2 { background: #ffedd5; color: #c2410c; }
+[data-theme="dark"] .entry-lang-badge.fr { background: #4a1f1f; color: #f87171; }
+[data-theme="dark"] .entry-lang-badge.ko { background: #3d1a44; color: #e879f9; }
+[data-theme="dark"] .entry-lang-badge.hv { background: #4a3a1a; color: #fbbf24; }
+[data-theme="dark"] .entry-lang-badge.hv2 { background: #4a2a14; color: #fb923c; }
+
+/* HanViet: compact stroke image inside entry-header (right of headword) */
+.entry-stroke-img {
+  width: 88px;
+  height: 88px;
+  margin: 0 6px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+  object-fit: contain;
+  box-shadow: var(--shadow-sm);
+  flex-shrink: 0;
+  align-self: center;
+}
+[data-theme="dark"] .entry-stroke-img { background: #f8f8f8; }
+.entry-stroke-fallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 88px;
+  height: 88px;
+  margin: 0 6px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-soft);
+  font-size: 56px;
+  line-height: 1;
+  color: var(--text);
+  font-family: 'Noto Sans CJK SC', 'Noto Sans SC', 'SimSun', serif;
+  flex-shrink: 0;
+  align-self: center;
+}
+
+/* HanViet: meta line below entry-header (pinyin + Unicode + stroke count) */
+.entry-meta-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin: -4px 0 14px;
+  font-size: 0.87em;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+.entry-meta-line .em-pinyin {
+  color: var(--hv);
+  font-style: italic;
+  font-weight: 600;
+  font-size: 1.1em;
+}
+.entry-meta-line .em-field b { color: var(--text); font-weight: 600; }
+@media (max-width: 720px) {
+  .entry-stroke-img, .entry-stroke-fallback { width: 64px; height: 64px; }
+  .entry-stroke-fallback { font-size: 40px; }
+}
+
+.entry-actions { margin-left: auto; display: flex; gap: 6px; }
+.entry-action-btn {
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--bg-soft);
+  display: flex; align-items: center; gap: 5px;
+  transition: all .15s;
+}
+.entry-action-btn:hover { background: var(--bg-hover); color: var(--text); }
+.entry-action-btn.active { color: #f59e0b; background: #fef3c7; }
+[data-theme="dark"] .entry-action-btn.active { background: #4a3a1a; color: #fbbf24; }
+.entry-action-btn svg { width: 14px; height: 14px; }
+.entry-pron-btn { color: var(--accent); background: var(--accent-soft); }
+.entry-pron-btn:hover { background: var(--accent); color: #fff; }
+.entry-pron-btn.playing { background: var(--accent); color: #fff; animation: pulse 0.6s ease-in-out infinite; }
+
+/* Zoom controls */
+.zoom-controls {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  background: var(--bg-soft);
+  border-radius: var(--radius-sm);
+  padding: 2px;
+}
+.zoom-btn {
+  width: 28px; height: 28px;
+  display: grid; place-items: center;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-muted);
+  background: transparent;
+  transition: all .12s;
+  line-height: 1;
+}
+.zoom-btn:hover { background: var(--bg-elevated); color: var(--text); box-shadow: var(--shadow-sm); }
+.zoom-btn:active { transform: scale(.92); }
+.zoom-btn svg { width: 13px; height: 13px; }
+.zoom-level {
+  min-width: 36px;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  user-select: none;
+}
+
+/* Fullscreen overlay for entry viewer */
+.viewer-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  background: var(--bg);
+  display: none;
+  flex-direction: column;
+  opacity: 0;
+  transition: opacity .2s ease;
+}
+.viewer-overlay.visible {
+  display: flex;
+  opacity: 1;
+}
+.viewer-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 20px;
+  background: var(--bg-elevated);
+  border-bottom: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  flex-shrink: 0;
+}
+.viewer-toolbar .viewer-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.viewer-toolbar .viewer-close {
+  width: 36px; height: 36px;
+  display: grid; place-items: center;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  background: var(--bg-soft);
+  transition: all .15s;
+}
+.viewer-toolbar .viewer-close:hover { background: #dc2626; color: #fff; }
+.viewer-toolbar .viewer-close svg { width: 18px; height: 18px; }
+.viewer-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 40px 24px 80px;
+}
+.viewer-body-inner {
+  max-width: 1000px;
+  margin: 0 auto;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 40px 48px;
+  box-shadow: var(--shadow-md);
+}
+
+.entry-body {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 24px 28px;
+  font-size: 15px;
+  line-height: 1.75;
+  box-shadow: var(--shadow-sm);
+  transition: font-size .15s ease;
+}
+
+/* Double-click word search hint — applied to #result via .entry-dblclick-hint class.
+   Body text shows text cursor + subtle highlight on hover to indicate the
+   word is double-clickable to look up in a related dictionary. */
+.entry-dblclick-hint .entry-body,
+.entry-dblclick-hint .hv-compounds,
+.entry-dblclick-hint .stroke-block {
+  cursor: text;
+  user-select: text;
+  -webkit-user-select: text;
+}
+.entry-dblclick-hint .entry-body ::selection,
+.entry-dblclick-hint .hv-compounds ::selection,
+.entry-dblclick-hint .stroke-block ::selection {
+  background: var(--accent, #4f8cff);
+  color: #fff;
+}
+/* Don't override cursor on interactive elements inside the body */
+.entry-dblclick-hint .entry-body button,
+.entry-dblclick-hint .entry-body .ref,
+.entry-dblclick-hint .entry-body .char-ref,
+.entry-dblclick-hint .entry-body .audio,
+.entry-dblclick-hint .entry-body .hv-compound-item,
+.entry-dblclick-hint .entry-body a {
+  cursor: pointer;
+}
+
+/* DSL rendered HTML */
+.dsl-body { color: var(--text); }
+.dsl-body .m { display: block; margin: 4px 0; }
+.dsl-body .m0 { margin-left: 0; }
+.dsl-body .m1 { margin-left: 16px; }
+.dsl-body .m2 { margin-left: 28px; }
+.dsl-body .m3 { margin-left: 28px; }
+.dsl-body .m4 { margin-left: 44px; }
+.dsl-body .m5 { margin-left: 28px; }
+.dsl-body .m9 { margin: 0; padding: 6px 0; border-bottom: 1px solid var(--border); }
+.dsl-body .m-spacer { height: 10px; }
+.dsl-body .phon { font-family: var(--font-mono); color: #8b6f47; font-style: italic; font-size: 0.93em; }
+[data-theme="dark"] .dsl-body .phon { color: #d4a574; }
+.dsl-body .pos { color: var(--accent); font-weight: 600; }
+.dsl-body .ref {
+  color: var(--accent);
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-underline-offset: 2px;
+}
+.dsl-body .ref:hover { color: var(--accent-hover); }
+.dsl-body .audio {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.47em; height: 1.47em;
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-radius: 50%;
+  font-size: 0.67em;
+  margin: 0 0.2em;
+  vertical-align: middle;
+  cursor: pointer;
+  transition: all .15s;
+  border: none;
+  padding: 0;
+  position: relative;
+}
+.dsl-body .audio:hover {
+  background: var(--accent);
+  color: #fff;
+  transform: scale(1.1);
+}
+.dsl-body .audio.playing {
+  background: var(--accent);
+  color: #fff;
+  animation: pulse 0.6s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+}
+.dsl-body .audio::before { content: '▶'; }
+.dsl-body .audio.playing::before { content: '■'; font-size: 0.53em; }
+.dsl-body .ex-source { color: #6b21a8; font-style: italic; }
+.dsl-body .ex-trans { color: var(--text-muted); }
+[data-theme="dark"] .dsl-body .ex-source { color: #c084fc; }
+.dsl-body .symbol { font-weight: 600; }
+
+/* HanViet: stroke-order image block */
+.dsl-body .stroke-img {
+  display: inline-block;
+  vertical-align: middle;
+  width: 160px;
+  height: 160px;
+  margin: 4px 12px 4px 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+  object-fit: contain;
+  box-shadow: var(--shadow-sm);
+}
+[data-theme="dark"] .dsl-body .stroke-img { background: #f8f8f8; }
+.dsl-body .stroke-fallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 160px;
+  height: 160px;
+  margin: 4px 12px 4px 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-soft);
+  font-size: 96px;
+  line-height: 1;
+  color: var(--text);
+  font-family: 'Noto Sans CJK SC', 'Noto Sans SC', 'SimSun', serif;
+  vertical-align: middle;
+}
+.dsl-body .stroke-block {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  margin: 8px 0 12px;
+  padding: 8px;
+  background: var(--bg-soft);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+.dsl-body .stroke-block .stroke-meta {
+  flex: 1;
+  font-size: 0.87em;
+  color: var(--text-muted);
+  line-height: 1.7;
+}
+.dsl-body .stroke-block .stroke-meta b { color: var(--text); }
+.dsl-body .ar { display: block; text-align: right; margin: 2px 0; font-size: 0.87em; }
+.dsl-body .pinyin { color: #b91c1c; font-style: italic; font-weight: 600; }
+.dsl-body .hanviet-reading { font-size: 1.47em; font-weight: 700; color: #1d4ed8; font-family: 'Cambria', 'Times New Roman', serif; }
+.dsl-body .hr-gray { display: block; height: 1px; background: var(--border); margin: 6px 0; border: none; }
+.dsl-body .hr-red { display: block; height: 2px; background: #dc2626; margin: 6px 0; border: none; }
+.dsl-body .char-ref {
+  color: #dc2626;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  font-family: 'Noto Sans CJK SC', 'Noto Sans SC', 'MingLiU', serif;
+}
+.dsl-body .char-ref:hover { color: #991b1b; }
+.dsl-body .char-annot {
+  color: #6b7280;
+  font-size: 0.8em;
+  font-family: 'MingLiU', 'SimSun', serif;
+}
+
+/* Welcome state */
+.welcome {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  text-align: center;
+  padding: 40px;
+  color: var(--text-muted);
+}
+.welcome .logo-big {
+  width: 80px; height: 80px;
+  background: linear-gradient(135deg, var(--en), var(--fr) 25%, var(--vi) 50%, var(--ko) 75%, var(--hv));
+  border-radius: 20px;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font-size: 40px;
+  font-weight: 800;
+  margin-bottom: 24px;
+  box-shadow: var(--shadow-lg);
+}
+.welcome h1 { color: var(--text); font-size: 24px; margin-bottom: 8px; font-weight: 700; }
+.welcome p { font-size: 15px; max-width: 480px; line-height: 1.7; margin-bottom: 24px; }
+.welcome .stats {
+  display: flex;
+  gap: 24px;
+  margin-top: 28px;
+}
+.welcome .stat {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 16px 24px;
+  text-align: center;
+  min-width: 120px;
+}
+.welcome .stat-num { font-size: 22px; font-weight: 700; color: var(--accent); }
+.welcome .stat-label { font-size: 12px; color: var(--text-muted); margin-top: 4px; text-transform: uppercase; letter-spacing: .5px; }
+.welcome .quick-words {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 24px;
+  max-width: 480px;
+}
+.welcome .quick-word {
+  padding: 6px 14px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 13px;
+  color: var(--text);
+  cursor: pointer;
+  transition: all .15s;
+}
+.welcome .quick-word:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+/* Loading */
+.loader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  text-align: center;
+  padding: 40px;
+}
+.loader .spinner {
+  width: 48px; height: 48px;
+  border: 4px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 20px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.loader h2 { color: var(--text); margin-bottom: 8px; }
+.loader p { color: var(--text-muted); }
+.loader .progress-bar {
+  width: 320px;
+  height: 6px;
+  background: var(--bg-soft);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-top: 20px;
+}
+.loader .progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--en), var(--fr), var(--vi), var(--ko), var(--hv));
+  border-radius: 3px;
+  transition: width .3s;
+}
+
+/* Toast */
+.toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(80px);
+  background: var(--text);
+  color: var(--bg);
+  padding: 10px 18px;
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  box-shadow: var(--shadow-lg);
+  transition: transform .3s, opacity .3s;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 1000;
+}
+.toast.visible { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+/* Portal button (floating bottom-left, links back to AI-SPA portal) */
+.portal-btn {
+  position: fixed;
+  bottom: 18px;
+  left: 18px;
+  z-index: 999;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px 8px 10px;
+  background: var(--bg-elevated);
+  border: 1.5px solid var(--border-strong);
+  border-radius: 999px;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  box-shadow: var(--shadow-md);
+  transition: all .15s;
+  user-select: none;
+}
+.portal-btn:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-lg);
+}
+.portal-btn .portal-icon {
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, var(--en), var(--fr) 25%, var(--vi) 50%, var(--ko) 75%, var(--hv));
+  border-radius: 50%;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+[data-theme="dark"] .portal-btn { background: var(--surface-2, var(--bg-elevated)); }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 5px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-subtle); }
+
+/* Direction toggle (Xuôi / Ngược) */
+.dir-toggle {
+  display: flex;
+  align-items: center;
+  padding: 4px 10px;
+  background: var(--accent-soft);
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--accent);
+  cursor: pointer;
+  user-select: none;
+  transition: all .15s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.dir-toggle:hover { background: var(--accent); color: #fff; }
+.dir-toggle.reverse { background: var(--vi); border-color: var(--vi); color: #fff; }
+.dir-toggle.reverse:hover { background: var(--vi); opacity: .9; }
+
+/* Reverse direction tag (for "Việt → X" tabs) */
+.lang-tab[data-lang="va"] .dot,
+.lang-tab[data-lang="vp"] .dot,
+.lang-tab[data-lang="vh"] .dot {
+  background: var(--vi);
+}
+
+/* Compound panel for HanViet */
+.hv-compounds {
+  margin: 16px 0 8px;
+  padding: 14px 18px;
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+.hv-compounds-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.hv-compounds-title .badge {
+  background: var(--hv);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+.hv-compound-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 8px;
+}
+.hv-compound-item {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 8px 10px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all .12s;
+  font-size: 14px;
+}
+.hv-compound-item:hover {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.hv-compound-item .ci-hanzi {
+  font-size: 18px;
+  font-weight: 700;
+  font-family: 'Noto Sans CJK SC', 'Noto Sans SC', 'SimSun', serif;
+  color: var(--text);
+  flex-shrink: 0;
+}
+.hv-compound-item .ci-pinyin {
+  font-style: italic;
+  color: var(--hv);
+  font-size: 12px;
+  font-weight: 600;
+}
+.hv-compound-item .ci-meaning {
+  color: var(--text-muted);
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+
+/* Mobile */
+@media (max-width: 820px) {
+  .main { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
+  .sidebar {
+    max-height: 42vh;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+  .resize-handle { display: none; }  /* no horizontal resize on mobile */
+  .header { padding: 0 8px; gap: 6px; height: 44px; overflow-x: auto; }
+  .brand .subtitle { display: none; }
+  .brand .title { font-size: 13px; }
+  .brand .logo { width: 22px; height: 22px; font-size: 11px; }
+  .lang-tabs { flex-wrap: nowrap; flex-shrink: 0; }
+  .lang-tab { padding: 4px 8px; font-size: 11px; gap: 4px; }
+  .lang-tab small { display: none; }  /* hide "(Trích Dẫn)" suffix on mobile */
+  .dir-toggle { padding: 3px 8px; font-size: 10px; }
+  .icon-btn { width: 26px; height: 26px; }
+  .icon-btn svg { width: 14px; height: 14px; }
+  .search-panel-header { padding: 5px 6px; }
+  .search-input-side { padding: 4px 28px 4px 26px; font-size: 12px; }
+  .result { padding: 18px 16px 60px; }
+  .entry-body { padding: 18px 16px; }
+  .entry-headword { font-size: 26px; }
+  .welcome .stats { flex-wrap: wrap; gap: 12px; }
+  .welcome .stat { min-width: 100px; padding: 12px 18px; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- HEADER -->
+  <header class="header">
+    <div class="brand">
+      <div class="logo">字</div>
+      <div>
+        <div class="title">Từ điển đa ngữ</div>
+        <div class="subtitle">Anh · Pháp · Việt · Hàn · Hán</div>
+      </div>
+    </div>
+    <div class="lang-tabs" role="tablist">
+      <button class="lang-tab active" data-lang="av" role="tab"><span class="dot"></span>Anh ↔ Việt</button>
+      <button class="lang-tab" data-lang="pv" role="tab"><span class="dot"></span>Pháp ↔ Việt</button>
+      <button class="lang-tab" data-lang="ek" role="tab"><span class="dot"></span>Anh ↔ Hàn</button>
+      <button class="lang-tab" data-lang="hv" role="tab"><span class="dot"></span>Hán ↔ Việt <small>Trích Dẫn</small></button>
+      <button class="lang-tab" data-lang="all" role="tab"><span class="dot"></span>Tất cả</button>
+    </div>
+    <div class="dir-toggle" id="dirToggle" title="Đổi hướng tra (xuôi/ngược)">
+      <span class="dir-toggle-label" id="dirLabel">Xuôi</span>
+    </div>
+    <div class="header-actions">
+      <button class="icon-btn" id="themeBtn" title="Đổi giao diện" aria-label="Đổi giao diện">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <button class="icon-btn" id="randomBtn" title="Từ ngẫu nhiên" aria-label="Từ ngẫu nhiên">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- MAIN -->
+  <div class="main">
+    <!-- SIDEBAR: Search Panel -->
+    <aside class="sidebar">
+      <div class="search-panel-header">
+        <div class="search-wrap-side">
+          <svg class="search-icon-side" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" class="search-input-side" id="searchInput" placeholder="Nhập từ cần tra..." autocomplete="off" spellcheck="false">
+          <button class="search-clear-side" id="searchClear" aria-label="Xoá">×</button>
+        </div>
+      </div>
+      <div class="sidebar-tabs">
+        <button class="sidebar-tab active" data-tab="search">Từ liên quan</button>
+        <button class="sidebar-tab" data-tab="favorites">Yêu thích <span class="badge" id="favBadge">0</span></button>
+      </div>
+      <div class="sidebar-list" id="sidebarList">
+        <div class="list-empty">Bắt đầu gõ để tra cứu<span class="hint">Ví dụ: hello, bonjour, love...</span></div>
+      </div>
+    </aside>
+
+    <!-- RESIZE HANDLE -->
+    <div class="resize-handle" id="resizeHandle" title="Kéo để thay đổi kích thước"></div>
+
+    <!-- CONTENT -->
+    <main class="content">
+      <div class="result" id="result">
+        <!-- content injected -->
+      </div>
+    </main>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- Portal button: returns to AI-SPA portal (../index.html) -->
+<a class="portal-btn" href="../index.html" title="Về Portal AI-SPA">
+  <span class="portal-icon">字</span>
+  <span>Portal</span>
+</a>
+
+<!-- Fullscreen viewer overlay -->
+<div class="viewer-overlay" id="viewerOverlay" aria-hidden="true">
+  <div class="viewer-toolbar">
+    <button class="viewer-close" id="viewerClose" title="Thoát (Esc)" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+    <div class="viewer-title" id="viewerTitle">—</div>
+    <div class="zoom-controls">
+      <button class="zoom-btn" id="viewerZoomOut" title="Thu nhỏ (Ctrl −)" type="button">A−</button>
+      <span class="zoom-level" id="viewerZoomLevel">100%</span>
+      <button class="zoom-btn" id="viewerZoomIn" title="Phóng to (Ctrl +)" type="button">A+</button>
+      <button class="zoom-btn" id="viewerZoomReset" title="Về kích thước gốc (Ctrl 0)" type="button" style="font-size:11px">100</button>
+    </div>
+    <button class="icon-btn" id="viewerPronBtn" title="Phát âm" type="button" style="color:var(--accent)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+    </button>
+  </div>
+  <div class="viewer-body" id="viewerBody">
+    <div class="viewer-body-inner" id="viewerBodyInner"></div>
+  </div>
+</div>
+
+<script>
+/* ===================================================================
+   MULTILINGUAL DICTIONARY SPA - EN/FR/VI/KO/HAN
+   Data: LacViet Anh-Viet (333K) + Phap-Viet (129K)
+         + Dong-A English-Korean (134K) + Korean-English (94K)
+         + HanViet Trichdan (44.8K Hán tự)
+   =================================================================== */
+
+'use strict';
+
+// ---------- CONFIG ----------
+const DATA_BASE = './dict-data/';
+const GIFS_BASE = './dict-data/hv_gifs/';
+const FILES = {
+  av:  { data: 'av.json.gz',  lang: 'en', label: 'Anh → Việt',          accent: 'us' },
+  pv:  { data: 'pv.json.gz',  lang: 'fr', label: 'Pháp → Việt',         accent: 'fr' },
+  ek:  { data: 'ek.json.gz',  lang: 'en', label: 'Anh → Hàn',           accent: 'us' },
+  ke:  { data: 'ke.json.gz',  lang: 'ko', label: 'Hàn → Anh',           accent: 'ko' },
+  hv:  { data: 'hv.json.gz',  lang: 'zh', label: 'Hán → Việt (Trích Dẫn)', accent: 'zh' }
+};
+// Reverse-direction mapping: when user toggles "Ngược", we re-use the same
+// dict data but search inside the body (Vietnamese side) instead of the headword.
+// va = Việt → Anh (uses av data), vp = Việt → Pháp (uses pv),
+// vh  = Việt → Hán (Trích Dẫn, uses hv)
+const REVERSE_MAP = { va: 'av', vp: 'pv', vh: 'hv' };
+// For ek/ke we already have both directions in separate files — toggle just swaps the dict key.
+const BIDIR_PAIRS = {
+  av:  { reverse: 'va',  label: 'Việt → Anh',          accent: 'vi' },
+  pv:  { reverse: 'vp',  label: 'Việt → Pháp',         accent: 'vi' },
+  ek:  { reverse: 'ke',  label: 'Hàn → Anh',           accent: 'ko' },
+  hv:  { reverse: 'vh',  label: 'Việt → Hán (Trích Dẫn)', accent: 'vi' }
+};
+
+// Set of available stroke-order GIF files (populated at init from a manifest fetch)
+const HV_GIFS_AVAILABLE = new Set();
+const DB_NAME = 'multidict';
+const DB_VERSION = 2;
+const STORE = 'kv';
+const AC_LIMIT = 50;
+const SEARCH_DEBOUNCE = 120;
+
+// ---------- STATE ----------
+const state = {
+  dicts: {},           // { av: {name, words:[], bodies:[], prefix1, prefix2}, pv: {...} }
+  currentLang: 'av',   // 'av' | 'pv' | 'ek' | 'ke' | 'hv' | 'all'  (forward key)
+  reverse: false,      // when true and currentLang is bidirectional, search reverse direction
+  currentEntry: null,  // {dict, idx, headword, body}
+  favorites: JSON.parse(localStorage.getItem('favorites') || '[]'),
+  currentTab: 'search', // 'search' | 'favorites'
+  searchQuery: '',
+  searchResults: [],
+  acSelectedIdx: -1,
+  zoomLevel: parseFloat(localStorage.getItem('zoomLevel') || '1'),
+  viewerOpen: false,
+  viewerZoomLevel: 1
+};
+
+// ---------- UTILITIES ----------
+function $(sel) { return document.querySelector(sel); }
+function $$(sel) { return Array.from(document.querySelectorAll(sel)); }
+
+function normalize(h) {
+  if (!h) return '';
+  // For CJK headwords, keep raw chars (just strip whitespace)
+  // CJK Unified Ideographs: U+4E00-U+9FFF, Ext A: U+3400-U+4DBF, CJK Compat: U+F900-U+FAFF
+  if (/[\u4e00-\u9fff\u3400-\u4dbf\uf900-\ufaff]/.test(h)) {
+    return h.normalize('NFC').toLowerCase().replace(/\s+/g, '');
+  }
+  return (h || '').toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9 '\-./\uac00-\ud7af\u1100-\u11ff\u3130-\u318f]/g, '')
+    .trim();
+}
+
+// Normalize for body-content search (reverse direction): always strip diacritics
+// even when the body contains CJK chars, so "nguoi" matches "người" inside a
+// mixed CJK+Vietnamese body. Keeps CJK chars + ASCII alphanumerics + Hangul.
+// Important: convert đ/Đ → d (NFD doesn't decompose đ) and keep spaces so
+// "ngũ đới" doesn't falsely concatenate into "nguoi" (matching "người").
+function normalizeBody(h) {
+  if (!h) return '';
+  return (h || '').toLowerCase()
+    .replace(/đ/g, 'd')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9 \u4e00-\u9fff\u3400-\u4dbf\uf900-\ufaff\uac00-\ud7af\u1100-\u11ff\u3130-\u318f]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function debounce(fn, wait) {
+  let t;
+  return function(...args) {
+    clearTimeout(t);
+    t = setTimeout(() => fn.apply(this, args), wait);
+  };
+}
+
+function showToast(msg) {
+  const t = $('#toast');
+  t.textContent = msg;
+  t.classList.add('visible');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('visible'), 2400);
+}
+
+function escapeHtml(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+function escapeAttr(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+// ---------- TEXT-TO-SPEECH (Web Speech API) ----------
+// Original .dat audio files are in proprietary encrypted LacViet format (XOR + custom container)
+// and cannot be decoded without the proprietary key. We use the browser's built-in
+// SpeechSynthesis API instead, which works for ALL words in English, French, Vietnamese.
+const tts = {
+  voices: [],
+  voicesByLang: {},
+  ready: false,
+  warmedUp: false,
+  current: null
+};
+
+function loadTtsVoices() {
+  if (!('speechSynthesis' in window)) return;
+  tts.voices = speechSynthesis.getVoices();
+  tts.voicesByLang = {};
+  for (const v of tts.voices) {
+    const lang = (v.lang || '').toLowerCase();
+    if (!tts.voicesByLang[lang]) tts.voicesByLang[lang] = [];
+    tts.voicesByLang[lang].push(v);
+  }
+  tts.ready = tts.voices.length > 0;
+  if (tts.ready) console.log(`TTS ready: ${tts.voices.length} voices loaded`);
+}
+
+if ('speechSynthesis' in window) {
+  loadTtsVoices();
+  // Some browsers load voices asynchronously
+  speechSynthesis.onvoiceschanged = loadTtsVoices;
+}
+
+// Warm up speech synthesis on first user interaction.
+// Chrome/Safari require this before speech works reliably.
+function warmupTts() {
+  if (tts.warmedUp || !('speechSynthesis' in window)) return;
+  tts.warmedUp = true;
+  try {
+    // Create a silent utterance to "unlock" the speech engine
+    const u = new SpeechSynthesisUtterance('');
+    u.volume = 0;
+    u.rate = 1;
+    speechSynthesis.speak(u);
+  } catch (e) {
+    console.warn('TTS warmup failed:', e);
+  }
+}
+
+function pickVoice(accent) {
+  // accent: 'us' | 'uk' | 'fr' | 'vi' | 'ko' | 'zh' | 'default'
+  const preferences = {
+    'us': ['en-us', 'en_us', 'en'],
+    'uk': ['en-gb', 'en_gb', 'en-uk', 'en'],
+    'fr': ['fr-fr', 'fr_fr', 'fr-be', 'fr-ca', 'fr-ch', 'fr'],
+    'vi': ['vi-vn', 'vi_vn', 'vi'],
+    'ko': ['ko-kr', 'ko_kr', 'ko'],
+    'zh': ['zh-cn', 'zh_cn', 'zh-tw', 'zh_tw', 'zh-hk', 'zh_hk', 'zh'],
+    'default': ['en-us', 'en-gb', 'en', 'fr-fr', 'fr', 'vi-vn', 'vi', 'ko-kr', 'ko', 'zh-cn', 'zh']
+  };
+  const prefs = preferences[accent] || preferences['default'];
+  // 1. exact lang match
+  for (const p of prefs) {
+    if (tts.voicesByLang[p] && tts.voicesByLang[p].length > 0) {
+      return tts.voicesByLang[p][0];
+    }
+  }
+  // 2. prefix match (e.g. voice lang 'fr-ca' should match prefix 'fr')
+  for (const p of prefs) {
+    const prefix = p.split('-')[0];
+    for (const lang in tts.voicesByLang) {
+      if (lang.startsWith(prefix)) {
+        return tts.voicesByLang[lang][0];
+      }
+    }
+  }
+  // 3. name-based match (some voices have non-standard lang codes but French/Chinese names)
+  if (accent === 'fr') {
+    for (const v of tts.voices) {
+      if (/\b(fr|fran|french|français|francais)\b/i.test(v.name)) return v;
+    }
+  } else if (accent === 'zh') {
+    for (const v of tts.voices) {
+      if (/\b(zh|chin|mandarin|cantonese|中文|汉语|普通话)\b/i.test(v.name)) return v;
+    }
+  } else if (accent === 'ko') {
+    for (const v of tts.voices) {
+      if (/\b(ko|kor|korean|한국어|한국)\b/i.test(v.name)) return v;
+    }
+  } else if (accent === 'vi') {
+    for (const v of tts.voices) {
+      if (/\b(vi|viet|vietnam|tiếng việt|tieng viet)\b/i.test(v.name)) return v;
+    }
+  }
+  return null;
+}
+
+function speak(word, accent, btn) {
+  if (!('speechSynthesis' in window)) {
+    showToast('Trình duyệt không hỗ trợ phát âm');
+    return;
+  }
+  if (!word || !word.trim()) return;
+
+  // Ensure voices are loaded
+  if (!tts.ready) loadTtsVoices();
+
+  // Warm up on first use
+  warmupTts();
+
+  // If this exact button is currently playing, stop and return (toggle behavior)
+  if (btn && btn._wasPlaying) {
+    speechSynthesis.cancel();
+    btn.classList.remove('playing');
+    btn._wasPlaying = false;
+    if (tts.current === btn) tts.current = null;
+    return;
+  }
+
+  // Reset any other currently-playing button visuals
+  if (tts.current && tts.current !== btn) {
+    tts.current.classList.remove('playing');
+    tts.current._wasPlaying = false;
+    tts.current = null;
+  }
+
+  // Cancel any current/pending speech. Use cancel() then a small delay
+  // because Chrome has a bug where speak() right after cancel() fails silently.
+  const wasSpeaking = speechSynthesis.speaking;
+  if (wasSpeaking) {
+    speechSynthesis.cancel();
+  }
+
+  const startSpeech = () => {
+    // Double-check: ensure not speaking before starting
+    if (speechSynthesis.speaking) {
+      speechSynthesis.cancel();
+    }
+
+    const utter = new SpeechSynthesisUtterance(word);
+    const voice = pickVoice(accent);
+    if (voice) {
+      utter.voice = voice;
+      utter.lang = voice.lang;
+    } else {
+      utter.lang = accent === 'fr' ? 'fr-FR' :
+                   accent === 'uk' ? 'en-GB' :
+                   accent === 'vi' ? 'vi-VN' :
+                   accent === 'ko' ? 'ko-KR' :
+                   accent === 'zh' ? 'zh-CN' :
+                   'en-US';
+    }
+    utter.rate = 0.9;
+    utter.pitch = 1;
+    utter.volume = 1;
+
+    if (btn) {
+      btn.classList.add('playing');
+      btn._wasPlaying = true;
+      tts.current = btn;
+    }
+
+    let ended = false;
+    const cleanup = () => {
+      if (ended) return;
+      ended = true;
+      if (btn) { btn.classList.remove('playing'); btn._wasPlaying = false; }
+      if (tts.current === btn) tts.current = null;
+    };
+
+    utter.onend = cleanup;
+    utter.onerror = (e) => {
+      cleanup();
+      console.warn('TTS error:', e.error || 'unknown', 'for word:', word);
+      if (e.error === 'not-allowed' || e.error === 'service-unavailable' || e.error === 'synthesis-failed') {
+        showToast('Không thể phát âm. Trình duyệt có thể không có giọng nói phù hợp.');
+      }
+    };
+
+    // Safety timeout: if onend/onerror never fires within 8s, reset button
+    setTimeout(() => { if (btn && btn._wasPlaying) cleanup(); }, 8000);
+
+    try {
+      speechSynthesis.speak(utter);
+      // Chrome bug: speech can pause after ~15s. Resume to be safe.
+      setTimeout(() => {
+        if (speechSynthesis.speaking && !speechSynthesis.paused) {
+          // still speaking, do nothing
+        } else if (speechSynthesis.paused) {
+          speechSynthesis.resume();
+        }
+      }, 200);
+    } catch (e) {
+      cleanup();
+      console.warn('TTS exception:', e);
+      showToast('Lỗi phát âm: ' + (e.message || 'unknown'));
+    }
+  };
+
+  // Wait long enough for cancel() to take effect (Chrome needs ~200ms)
+  if (wasSpeaking) {
+    setTimeout(startSpeech, 220);
+  } else {
+    // Small delay even when not speaking, to let warmup settle
+    setTimeout(startSpeech, 30);
+  }
+}
+
+// ---------- INDEXEDDB ----------
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, DB_VERSION);
+    req.onupgradeneeded = (e) => {
+      const db = req.result;
+      // If upgrading from old version (1 → 2), wipe old data to force reload
+      if (e.oldVersion < DB_VERSION) {
+        if (db.objectStoreNames.contains(STORE)) {
+          try { db.deleteObjectStore(STORE); } catch (err) {}
+        }
+      }
+      if (!db.objectStoreNames.contains(STORE)) db.createObjectStore(STORE);
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function idbGet(key) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE, 'readonly');
+    const req = tx.objectStore(STORE).get(key);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function idbSet(key, value) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE, 'readwrite');
+    tx.objectStore(STORE).put(value, key);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+// ---------- DATA LOADING ----------
+async function decompressGzToArrayBuffer(url) {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('Fetch failed: ' + url + ' ' + res.status);
+  const buf = await res.arrayBuffer();
+  if (typeof DecompressionStream !== 'undefined') {
+    try {
+      const ds = new DecompressionStream('gzip');
+      const stream = new Response(buf).body.pipeThrough(ds);
+      const decompressed = await new Response(stream).arrayBuffer();
+      return decompressed;
+    } catch (e) { /* fall through */ }
+  }
+  throw new Error('DecompressionStream not supported and no fallback available');
+}
+
+async function loadDict(key, onProgress) {
+  const cached = await idbGet('dict_' + key);
+  // Cache version: hv = 4, others = 4
+  const expectedVer = 4;
+  if (cached && cached.version === expectedVer) {
+    console.log('Loaded ' + key + ' from cache');
+    return cached.data;
+  }
+  onProgress && onProgress('Đang tải: ' + FILES[key].data);
+  const ab = await decompressGzToArrayBuffer(DATA_BASE + FILES[key].data);
+  onProgress && onProgress('Đang giải mã: ' + FILES[key].data);
+  const text = new TextDecoder('utf-8').decode(ab);
+  const obj = JSON.parse(text);
+  const words = obj.w.split('\n');
+  const bodies = obj.b.split('\u0001');
+  const data = {
+    name: obj.name,
+    indexLang: obj.indexLang,
+    contentsLang: obj.contentsLang,
+    count: obj.count,
+    words, bodies,
+    prefix1: obj.p1,
+    prefix2: obj.p2
+  };
+  // HanViet extras: pinyin, pinyin-normalized, types, root chars, compounds map,
+  // and sorted-by-pinyin index for binary-search-based pinyin autocomplete.
+  // Apply to hv (Trích Dẫn).
+  if (key === 'hv') {
+    data.pinyin = obj.pinyin || [];
+    data.pn = obj.pn || [];
+    data.types = obj.types || [];
+    data.rootChars = obj.rootChars || [];
+    data.compounds = obj.compounds || {};
+    data.pinyinSortedIdx = obj.pinyinSortedIdx || [];
+    data.pinyinSortedPn = obj.pinyinSortedPn || [];
+  }
+  try {
+    // Bump version per-dict: hv stays at 4
+    const cacheVer = 4;
+    await idbSet('dict_' + key, { version: cacheVer, data });
+  } catch (e) { console.warn('IDB save failed', e); }
+  return data;
+}
+
+async function init() {
+  const resultEl = $('#result');
+  resultEl.innerHTML = `
+    <div class="loader">
+      <div class="spinner"></div>
+      <h2>Đang chuẩn bị từ điển</h2>
+      <p id="loaderStatus">Đang tải dữ liệu...</p>
+      <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+    </div>`;
+
+  try {
+    // Fetch the manifest of available stroke-order GIFs (one file listing all gif names)
+    updateProgressSafe('Đang tải danh sách ảnh nét bút...');
+    try {
+      const r = await fetch(GIFS_BASE + 'manifest.txt');
+      if (r.ok) {
+        const txt = await r.text();
+        txt.split('\n').forEach(l => { l = l.trim(); if (l) HV_GIFS_AVAILABLE.add(l); });
+        console.log(`Loaded ${HV_GIFS_AVAILABLE.size} stroke-order GIF names`);
+      }
+    } catch (e) { console.warn('Could not load hv_gifs manifest:', e); }
+
+    const totalSteps = 12;
+    let step = 0;
+    const updateProgress = (msg) => {
+      step++;
+      const pct = Math.min(100, (step / totalSteps) * 100);
+      const fill = document.getElementById('progressFill');
+      if (fill) fill.style.width = pct + '%';
+      if (msg) {
+        const s = document.getElementById('loaderStatus');
+        if (s) s.textContent = msg;
+      }
+    };
+
+    state.dicts.av  = await loadDict('av',  updateProgress);
+    state.dicts.pv  = await loadDict('pv',  updateProgress);
+    state.dicts.ek  = await loadDict('ek',  updateProgress);
+    state.dicts.ke  = await loadDict('ke',  updateProgress);
+    state.dicts.hv  = await loadDict('hv',  updateProgress);
+    updateProgress('Đang khởi tạo giao diện...');
+    renderWelcome();
+    renderSidebar();
+    $('#searchInput').focus();
+  } catch (e) {
+    console.error(e);
+    resultEl.innerHTML = `
+      <div class="loader">
+        <h2 style="color:#dc2626">Lỗi tải dữ liệu</h2>
+        <p>${e.message}</p>
+        <p style="margin-top:12px">Vui lòng tải lại trang hoặc kiểm tra kết nối.</p>
+      </div>`;
+  }
+}
+
+function updateProgressSafe(msg) {
+  const s = document.getElementById('loaderStatus');
+  if (s) s.textContent = msg;
+}
+
+// ---------- DSL RENDERER ----------
+const DSL_COLOR_MAP = {
+  'brown': '#8b6f47', 'blue': '#1a73e8', 'magenta': '#d6336c',
+  'darkcyan': '#0e7490', 'darkviolet': '#7c3aed', 'mediumvioletred': '#c026d3',
+  'dimgray': '#6b7280', 'red': '#dc2626', 'white': '#9ca3af',
+  'orangered': '#f97316', 'royalblue': '#2563eb', 'crimson': '#dc2626',
+  'forestgreen': '#16a34a', 'darkgreen': '#15803d', 'mediumblue': '#1d4ed8',
+  'firebrick': '#b91c1c', 'blueviolet': '#7c3aed', 'darkred': '#991b1b',
+  'darkblue': '#1e3a8a', 'purple': '#9333ea', 'green': '#16a34a',
+  'gray': '#6b7280', 'grey': '#6b7280', 'black': '#1f2933',
+  'silver': '#9ca3af', 'gold': '#d4a017', 'navy': '#1e3a8a',
+  'teal': '#0e7490', 'olive': '#808000', 'maroon': '#7f1d1d',
+  'lime': '#65a30d', 'aqua': '#06b6d4', 'yellow': '#ca8a04',
+  'fuchsia': '#c026d3', 'indigo': '#4f46e5'
+};
+
+function processInlineDsl(s, ctxWord, ctxLang, dictKey) {
+  // [p]...[/p] part of speech / pinyin — colored+italic (must process before [s])
+  s = s.replace(/\[p\]([\s\S]*?)\[\/p\]/g, '<span class="pinyin">$1</span>');
+  // [sup]...[/sup] superscript
+  s = s.replace(/\[sup\]([\s\S]*?)\[\/sup\]/g, '<sup>$1</sup>');
+  // [sub]...[/sub] subscript
+  s = s.replace(/\[sub\]([\s\S]*?)\[\/sub\]/g, '<sub>$1</sub>');
+  // [ar]...[/ar] — right-aligned block (HanViet)
+  s = s.replace(/\[ar\]([\s\S]*?)\[\/ar\]/g, '<span class="ar">$1</span>');
+  // [fs <style> <size>px <font>]...[/fs] — font spec block (HanViet).
+  // Style may be 'bold', 'italic', or 'bold italic'. We honour just bold+italic+size+font-family.
+  // IMPORTANT: px/pt sizes are converted to em (relative to BASE_FONT_PX=15) so that
+  // Chinese characters and pinyin in example sentences scale with the viewer zoom.
+  // Previously, absolute px inline styles ignored the parent's zoom-adjusted font-size,
+  // leaving Chinese/pinyin visually smaller than the surrounding Vietnamese text.
+  s = s.replace(/\[fs\s+([^\]]+)\]([\s\S]*?)\[\/fs\]/g, (m, spec, content) => {
+    const parts = spec.trim().split(/\s+/);
+    let style = '', fontSize = '', fontFamily = '';
+    for (const p of parts) {
+      if (p === 'bold') style += 'font-weight:700;';
+      else if (p === 'italic') style += 'font-style:italic;';
+      else {
+        // Size: bare number / Npx / Npt → convert to em (base 15). Nem → keep as-is.
+        const mSize = p.match(/^(\d+)(px|pt|em)?$/);
+        if (mSize) {
+          let val = parseFloat(mSize[1]);
+          const unit = mSize[2] || 'px';
+          if (unit === 'px') val = val / 15;
+          else if (unit === 'pt') val = val * 4 / 45;  // 1pt ≈ 1.333px → /15
+          // unit === 'em' → leave as-is
+          fontSize = 'font-size:' + val.toFixed(4) + 'em;';
+        } else if (/^[a-zA-Z][\w-]*$/.test(p)) {
+          fontFamily = "font-family:'" + p + "',serif;";
+        }
+      }
+    }
+    return '<span style="' + style + fontSize + fontFamily + '">' + content + '</span>';
+  });
+  // [hr] or [hr size=N color=X width=N align=Y] — horizontal rule (HanViet)
+  // Note: DSL format sometimes writes [hr] as 'r ...] [/hr]' (the opening [h is stripped by line trim).
+  // We also handle the partial 'r size=... color=...] [/hr]' form.
+  s = s.replace(/^r\s+([^\]]*?)\]\s*\[\/hr\]/gm, (m, attrs) => {
+    const sizeMatch = attrs.match(/size=(\d+)/);
+    const colorMatch = attrs.match(/color=([\w#]+)/);
+    if (sizeMatch && parseInt(sizeMatch[1]) >= 2) {
+      return '<hr class="hr-red">';
+    }
+    return '<hr class="hr-gray">';
+  });
+  s = s.replace(/\[hr(?:\s+[^\]]*)?\]/g, '<hr class="hr-gray">');
+  s = s.replace(/\[\/hr\]/g, '');
+  // [c color]...
+  s = s.replace(/\[c\s+([^\]]+)\]/g, (m, color) => {
+    color = color.trim();
+    const css = DSL_COLOR_MAP[color] || color;
+    return '<span style="color:' + css + '">';
+  });
+  s = s.replace(/\[\/c\]/g, '</span>');
+  s = s.replace(/\[b\]/g, '<strong>').replace(/\[\/b\]/g, '</strong>');
+  s = s.replace(/\[i\]/g, '<em>').replace(/\[\/i\]/g, '</em>');
+  s = s.replace(/\[u\]/g, '<u>').replace(/\[\/u\]/g, '</u>');
+  // [btn][ref]X[/ref][/btn] — clickable cross-ref button showing X. We render as a ref link.
+  // Note: ref content may itself contain [X=Y] font-spec sub-tags, e.g. [ref]估 [估=估][/ref]
+  s = s.replace(/\[btn\]\[ref\]([\s\S]*?)\[\/ref\]\[\/btn\]/g, (m, inner) => {
+    const target = inner.trim().split(/[\s\[]/)[0];
+    return '<a class="ref char-ref" data-ref="' + escapeAttr(target) + '">' + escapeHtml(target) + '</a>';
+  });
+  // [ref]X[/ref] without btn — also a ref link.
+  // HanViet DSL pattern: [ref]<char> [<char>=<char>][/ref] — extract first token as target.
+  s = s.replace(/\[ref\]([\s\S]*?)\[\/ref\]/g, (m, inner) => {
+    const target = inner.trim().split(/[\s\[]/)[0];
+    return '<a class="ref" data-ref="' + escapeAttr(target) + '">' + escapeHtml(target) + '</a>';
+  });
+  // [s]file.wav[/s] or [s]file.gif[/s] — for HanViet, gifs are stroke-order images, wavs are audio.
+  // For other dicts, [s] is always audio (TTS).
+  // Compute the headword's first-char codepoint gif name so we can skip the
+  // duplicate stroke image inside the DSL body (the entry-header already shows
+  // the same gif next to the headword — see renderEntry).
+  const _hwFirstCharGif = (dictKey === 'hv' && ctxWord)
+    ? ctxWord.codePointAt(0).toString(16) + '.gif'
+    : null;
+  s = s.replace(/\[s\]([^\[]+?)\[\/s\]/g, (m, filename) => {
+    const lower = filename.toLowerCase();
+    // HanViet stroke-order GIF
+    if (dictKey === 'hv' && /\.gif$/i.test(filename)) {
+      // Skip if this gif is the same as the headword's first-char stroke gif
+      // (already shown in the entry-header — avoids duplicate image).
+      if (_hwFirstCharGif && lower === _hwFirstCharGif) {
+        return '';
+      }
+      // Only render <img> if the gif is available; else show fallback char
+      if (HV_GIFS_AVAILABLE.has(lower)) {
+        return '<img class="stroke-img" src="' + GIFS_BASE + filename + '" alt="Nét bút ' + escapeAttr(ctxWord || '') + '" loading="lazy">';
+      }
+      // Fallback: show the headword char in a styled box (no image)
+      return '<span class="stroke-fallback" title="Ảnh nét bút chưa có">' + escapeHtml(ctxWord || '?') + '</span>';
+    }
+    // Audio file (.wav) → TTS button
+    let accent;
+    if (dictKey === 'ke') {
+      accent = 'ko';
+    } else if (dictKey === 'hv') {
+      accent = 'zh';  // pinyin pronunciation
+    } else if (ctxLang === 'fr' || dictKey === 'pv') {
+      accent = 'fr';
+    } else if (/_[Uu]k\./.test(filename)) {
+      accent = 'uk';
+    } else {
+      accent = 'us';
+    }
+    return '<button class="audio" data-word="' + escapeAttr(ctxWord || '') + '" data-accent="' + accent + '" title="Phát âm ' + escapeAttr(ctxWord || '') + ' (' + accent.toUpperCase() + ')" type="button"></button>';
+  });
+  // Strip [btn]...[/btn] wrappers (already handled inside)
+  s = s.replace(/\[\/?btn\]/g, '');
+  // Strip table tags — Korean dict uses [tbl][tr][td]...[/td][/tr][/tbl] in a flat way.
+  s = s.replace(/\[\/?tbl\]/g, '');
+  s = s.replace(/\[\/?tr\]/g, '');
+  s = s.replace(/\[\/?td\]/g, '');
+  // Unescape DSL backslash-escapes
+  s = s.replace(/\\\[/g, '[').replace(/\\\]/g, ']');
+  s = s.replace(/\\ /g, '');
+  // Cleanup any dangling closing tags
+  s = s.replace(/\[\/ref\]/g, '').replace(/\[\/c\]/g, '').replace(/\[\/b\]/g, '')
+       .replace(/\[\/i\]/g, '').replace(/\[\/u\]/g, '').replace(/\[\/s\]/g, '')
+       .replace(/\[\/p\]/g, '').replace(/\[\/sup\]/g, '').replace(/\[\/sub\]/g, '')
+       .replace(/\[\/ar\]/g, '').replace(/\[\/fs\]/g, '');
+  return s;
+}
+
+function renderDsl(body, headword, lang, dictKey) {
+  if (!body) return '<div class="dsl-body"><p style="color:var(--text-muted);font-style:italic">Không có nội dung.</p></div>';
+
+  const escaped = escapeHtml(body);
+  // Preprocess: strip invisible cross-reference metadata tags.
+  // Two forms appear in the source:
+  //   1. "[m6 168367►供事]" — full tag with [m prefix (margin-level 6 with ref id+word)
+  //   2. "6 168367►供事]"    — orphan form (after [m stripping in build pipeline)
+  // Both can appear inline within a paragraph (not just at line start), so we
+  // strip them from anywhere in the body. Pattern: optional [m, digit(s), space,
+  // digit(s), ►, non-bracket chars, ]
+  const cleaned = escaped.replace(/\[m\d+\s+\d+►[^\]\[]+?\]/g, ' ')
+                         .replace(/(?<!\w)(\d+)\s+(\d+)►[^\]\[]+?\]/g, ' ');
+  const lines = cleaned.split('\n');
+  const htmlParts = [];
+
+  for (const line of lines) {
+    if (!line) continue;
+    if (line === '\t\\ ' || line === '\t\\') {
+      htmlParts.push('<div class="m-spacer"></div>');
+      continue;
+    }
+    if (!line.startsWith('\t')) {
+      const trimmed = line.trim();
+      if (trimmed) htmlParts.push('<div class="m">' + processInlineDsl(trimmed, headword, lang, dictKey) + '</div>');
+      continue;
+    }
+    let rest = line.slice(1);
+    let lvl = '';
+    // Try [mN] or [mN ...] tag (margin level with optional metadata)
+    let m1 = rest.match(/^\[m(\d+)(?:\s+[^\]]*?)?\]/);
+    if (m1) {
+      lvl = m1[1] || '';
+      rest = rest.slice(m1[0].length);
+    } else {
+      // Orphan tag (after [m stripping): "N]" — capture margin level N
+      let m2 = rest.match(/^(\d+)\]/);
+      if (m2) {
+        lvl = m2[1] || '';
+        rest = rest.slice(m2[0].length);
+      }
+    }
+    rest = rest.replace(/\[\/m\d*\]$/, '').replace(/\[\/m\]$/, '');
+    const content = processInlineDsl(rest, headword, lang, dictKey);
+    if (lvl) {
+      htmlParts.push('<div class="m m' + lvl + '">' + content + '</div>');
+    } else {
+      htmlParts.push('<div class="m">' + content + '</div>');
+    }
+  }
+
+  return '<div class="dsl-body">' + htmlParts.join('') + '</div>';
+}
+
+// ---------- SEARCH ----------
+// Forward-direction prefix search on headwords (with p1/p2 index).
+function searchPrefix(dictKey, query) {
+  const dict = state.dicts[dictKey];
+  if (!dict) return [];
+  const q = normalize(query);
+  if (!q) return [];
+
+  let start = 0, end = dict.words.length;
+  if (q.length >= 2) {
+    const p2 = q.slice(0, 2);
+    const range = dict.prefix2[p2];
+    if (range) { start = range[0]; end = range[1] + 1; }
+  } else if (q.length === 1) {
+    const p1 = q.slice(0, 1);
+    const range = dict.prefix1[p1];
+    if (range) { start = range[0]; end = range[1] + 1; }
+  }
+
+  const results = [];
+  for (let i = start; i < end && results.length < AC_LIMIT * 3; i++) {
+    if (normalize(dict.words[i]).startsWith(q)) {
+      results.push({ dict: dictKey, idx: i, headword: dict.words[i] });
+    }
+  }
+  results.sort((a, b) => {
+    const lenDiff = a.headword.length - b.headword.length;
+    if (lenDiff !== 0) return lenDiff;
+    return a.headword.localeCompare(b.headword);
+  });
+  return results.slice(0, AC_LIMIT);
+}
+
+// Pinyin search for HanViet dict (hv Trích Dẫn).
+// Uses the pinyinSortedIdx / pinyinSortedPn parallel arrays (sorted by pinyin
+// normalized) for fast prefix lookup.
+function searchPinyin(query, dictKey) {
+  dictKey = dictKey || 'hv';  // default to Trích Dẫn for backward-compat callers
+  const dict = state.dicts[dictKey];
+  if (!dict || !dict.pinyinSortedIdx) return [];
+  const q = (query || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  if (!q) return [];
+  const sortedPn = dict.pinyinSortedPn;
+  const sortedIdx = dict.pinyinSortedIdx;
+  // Binary search for the lower bound
+  let lo = 0, hi = sortedPn.length;
+  while (lo < hi) {
+    const mid = (lo + hi) >>> 1;
+    if (sortedPn[mid] < q) lo = mid + 1;
+    else hi = mid;
+  }
+  const start = lo;
+  const results = [];
+  for (let i = start; i < sortedPn.length && results.length < AC_LIMIT * 2; i++) {
+    if (!sortedPn[i].startsWith(q)) break;
+    const origIdx = sortedIdx[i];
+    results.push({
+      dict: dictKey,
+      idx: origIdx,
+      headword: dict.words[origIdx],
+      pinyin: dict.pinyin ? dict.pinyin[origIdx] : ''
+    });
+  }
+  // Prefer single-character matches first (so user can pick the char they want),
+  // then short compounds, then long.
+  results.sort((a, b) => {
+    const lenDiff = a.headword.length - b.headword.length;
+    if (lenDiff !== 0) return lenDiff;
+    return a.headword.localeCompare(b.headword);
+  });
+  return results.slice(0, AC_LIMIT);
+}
+
+// Reverse-direction search: scan dict bodies for occurrences of the query string.
+// Used for va / vp / vh modes — Vietnamese headword search via the body of
+// av / pv / hv dicts. We normalize Vietnamese (strip diacritics) so users can
+// search "an" and still find entries whose body contains "ăn", "án", "àn"...
+// `forwardKey` is the underlying dict (av/pv/hv) used to look up bodies;
+// `displayKey` is the user-facing label key (va/vp/vh) stored on the result.
+function searchReverse(forwardKey, displayKey, query) {
+  const dict = state.dicts[forwardKey];
+  if (!dict) return [];
+  const q = normalizeBody(query);
+  if (!q || q.length < 1) return [];
+  const results = [];
+  const limit = AC_LIMIT * 3;
+  for (let i = 0; i < dict.bodies.length && results.length < limit; i++) {
+    const body = dict.bodies[i];
+    if (!body) continue;
+    // Quick reject: normalized body must contain query.
+    const normBody = normalizeBody(stripDsl(body));
+    if (!normBody.includes(q)) continue;
+    const matchInfo = extractViMatch(body, q);
+    if (matchInfo) {
+      results.push({
+        dict: displayKey,
+        forwardDict: forwardKey,
+        idx: i,
+        headword: matchInfo.headword,
+        body: body,
+        preview: matchInfo.preview
+      });
+    }
+  }
+  results.sort((a, b) => {
+    const lenDiff = a.headword.length - b.headword.length;
+    if (lenDiff !== 0) return lenDiff;
+    return a.headword.localeCompare(b.headword);
+  });
+  return results.slice(0, AC_LIMIT);
+}
+
+// Strip DSL tags from a body string for normalize+search purposes.
+function stripDsl(body) {
+  return body
+    .replace(/\[m\d*\]/g, ' ')
+    .replace(/\[\/m\d*\]/g, ' ')
+    .replace(/\[[^\]]+\]/g, ' ')
+    .replace(/\\\[/g, '[').replace(/\\\]/g, ']')
+    // Rich HanViet DSL: orphan opening tags like '0]', '1]', '3]' (without [m prefix)
+    .replace(/\b\d+\]/g, ' ')
+    // Orphan [hr] opening tag fragment: 'r size=1 color=gray ...]' or 'r size=2 color=red ...]'
+    .replace(/\br\s+size=[^\]]*\]/g, ' ')
+    // Bullet markers
+    .replace(/[❖◎◇]/g, ' ')
+    .replace(/\t/g, ' ')
+    .replace(/\\ /g, ' ');
+}
+
+// Extract a Vietnamese headword candidate from the body for reverse-direction
+// display. Strategy: find the first non-tag word run that, when normalized,
+// starts with the query string. Return the original-cased text.
+function extractViMatch(body, qnorm) {
+  // Get the plain text version (no DSL tags, no tabs)
+  const text = stripDsl(body);
+  // Tokenize into words (Vietnamese letters + accents)
+  const tokens = text.match(/[A-Za-zÀ-ỹĐđ]+/g) || [];
+  for (const tok of tokens) {
+    const normTok = normalizeBody(tok);
+    if (normTok.startsWith(qnorm)) {
+      // Take this token as the headword; also produce a short preview
+      const idx = text.indexOf(tok);
+      const preview = text.slice(idx, idx + 80).replace(/\s+/g, ' ').trim();
+      return { headword: tok, preview: preview };
+    }
+  }
+  // Fallback: query appears somewhere in body but not as a word prefix —
+  // still show entry but use query as headword.
+  return { headword: qnorm, preview: text.slice(0, 80).replace(/\s+/g, ' ').trim() };
+}
+
+function searchAll(query) {
+  const q = normalize(query);
+  if (!q) return [];
+  let results = [];
+  if (state.currentLang === 'all') {
+    // In "Tất cả" mode, search forward in every dict.
+    for (const dk of ['av', 'pv', 'ek', 'ke', 'hv']) {
+      if (state.dicts[dk]) {
+        if (dk === 'hv' && /^[a-z]+$/i.test(query)) {
+          results = results.concat(searchPinyin(query, dk));
+          // Also search HanViet headwords (some chars may match if query has Latin chars
+          // — unlikely for Hanzi but harmless).
+        }
+        results = results.concat(searchPrefix(dk, query));
+      }
+    }
+  } else if (state.reverse) {
+    // Reverse mode: search inside body of the underlying dict.
+    const lang = state.currentLang;
+    if (lang === 'ek') {
+      // ek reverse = Hàn → Anh = forward search on ke (already a real dict)
+      results = searchPrefix('ke', query);
+    } else if (lang === 'hv') {
+      // Hán → Việt (Trích Dẫn) reverse = Việt → Hán (Trích Dẫn): search body of hv
+      results = searchReverse('hv', 'vh', query);
+    } else if (lang === 'vh') {
+      // Việt → Hán (Trích Dẫn): search body of hv
+      results = searchReverse('hv', 'vh', query);
+    } else if (lang === 'av') {
+      results = searchReverse('av', 'va', query);
+    } else if (lang === 'pv') {
+      results = searchReverse('pv', 'vp', query);
+    }
+  } else {
+    // Forward mode
+    const lang = state.currentLang;
+    if (lang === 'hv' && /^[a-z]+$/i.test(query)) {
+      // Latin query in Hán mode → search pinyin (with IME dropdown)
+      results = searchPinyin(query, lang);
+      // Also do forward headword search in case user typed a partial pinyin
+      // that happens to match a Hanzi (rare). Fallback empty.
+    } else {
+      results = searchPrefix(lang, query);
+    }
+  }
+  results.sort((a, b) => {
+    const lenDiff = a.headword.length - b.headword.length;
+    if (lenDiff !== 0) return lenDiff;
+    return a.headword.localeCompare(b.headword);
+  });
+  return results.slice(0, AC_LIMIT);
+}
+
+// ---------- DICT META HELPERS ----------
+// Returns the *forward* dict key for a given state.
+// If state.reverse is true and currentLang is bidirectional, returns the
+// underlying forward dict key (av/pv/hv/ke). Otherwise returns currentLang.
+function activeDictKey() {
+  const lang = state.currentLang;
+  if (lang === 'all') return 'all';
+  if (state.reverse && BIDIR_PAIRS[lang]) {
+    // For av/pv/hv → reverse uses the same dict but searches body.
+    // For ek → reverse uses ke (separate file).
+    if (lang === 'ek') return 'ke';
+    return lang;  // av, pv, hv use same dict, just reverse search
+  }
+  return lang;
+}
+// Returns the user-facing dict key for storage/labels (may be virtual like 'va', 'vp', 'vh').
+function displayDictKey() {
+  const lang = state.currentLang;
+  if (lang === 'all') return 'all';
+  if (state.reverse && BIDIR_PAIRS[lang]) {
+    return BIDIR_PAIRS[lang].reverse;
+  }
+  return lang;
+}
+function dictLangClass(dictKey) {
+  // returns 'en' | 'fr' | 'ko' | 'hv' for color dot/badge
+  return ({ av: 'en', va: 'vi', pv: 'fr', vp: 'vi', ek: 'en', ke: 'ko',
+            hv: 'hv', vh: 'vi' })[dictKey] || 'en';
+}
+function dictAccent(dictKey) {
+  // returns TTS accent for the headword of this dict
+  return ({ av: 'us', va: 'vi', pv: 'fr', vp: 'vi', ek: 'us', ke: 'ko',
+            hv: 'zh', vh: 'vi' })[dictKey] || 'us';
+}
+function dictLabel(dictKey) {
+  if (FILES[dictKey]) return FILES[dictKey].label;
+  if (dictKey === 'va')  return 'Việt → Anh';
+  if (dictKey === 'vp')  return 'Việt → Pháp';
+  if (dictKey === 'vh')  return 'Việt → Hán (Trích Dẫn)';
+  return '?';
+}
+function isCjkHeadword(s) {
+  return s && /[\u4e00-\u9fff\u3400-\u4dbf\uf900-\ufaff]/.test(s);
+}
+// Helper: returns true if this dict key is the Han-Viet dict (hv)
+function isHvDict(dictKey) {
+  return dictKey === 'hv' || dictKey === 'vh';
+}
+
+// ---------- HIGHLIGHT ----------
+function highlightMatch(headword, query) {
+  const qnorm = normalize(query);
+  if (!qnorm) return escapeHtml(headword);
+  const normHw = normalize(headword);
+  if (!normHw.startsWith(qnorm)) return escapeHtml(headword);
+
+  // Walk through original headword, consuming normalized query chars
+  const hw = headword;
+  let pos = 0;
+  let normPos = 0;
+  while (normPos < qnorm.length && pos < hw.length) {
+    const ch = hw[pos].toLowerCase();
+    const normCh = ch.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    if (normCh === qnorm[normPos]) {
+      normPos++;
+    }
+    pos++;
+  }
+  return '<mark>' + escapeHtml(hw.slice(0, pos)) + '</mark>' + escapeHtml(hw.slice(pos));
+}
+
+// ---------- RENDER SIDEBAR (search + favorites) ----------
+function renderSidebar() {
+  updateFavBadge();
+  if (state.currentTab === 'favorites') {
+    renderFavoritesList();
+  } else {
+    renderSearchResults();
+  }
+}
+
+function updateFavBadge() {
+  $('#favBadge').textContent = state.favorites.length;
+}
+
+function renderSearchResults() {
+  const list = $('#sidebarList');
+  const items = state.searchResults;
+  const query = state.searchQuery;
+
+  if (!query || !query.trim()) {
+    list.innerHTML = `<div class="list-empty">Bắt đầu gõ để tra cứu<span class="hint">Ví dụ: hello, bonjour, love...</span></div>`;
+    return;
+  }
+
+  if (items.length === 0) {
+    list.innerHTML = `<div class="list-empty">Không tìm thấy kết quả cho "${escapeHtml(query)}"<span class="hint">Thử từ khoá khác hoặc đổi ngôn ngữ</span></div>`;
+    return;
+  }
+
+  list.innerHTML = items.map((it, i) => {
+    const langClass = dictLangClass(it.dict);
+    const display = highlightMatch(it.headword, query);
+    // body may already be set (reverse search) or fetched from dict (forward search)
+    let preview;
+    if (it.preview) {
+      preview = it.preview;
+    } else {
+      const fwdKey = it.forwardDict || it.dict;
+      const dict = state.dicts[fwdKey];
+      preview = dict ? dict.bodies[it.idx].replace(/\[[^\]]*\]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 60) : '';
+    }
+    const selected = i === state.acSelectedIdx ? ' selected' : '';
+    const cjkClass = isCjkHeadword(it.headword) ? ' cjk' : '';
+    // Sidebar shows only the headword — no pinyin badge, no mixed Hán-Việt.
+    // (Previously, HanViet pinyin-search results showed a small pinyin badge
+    // next to the Chinese headword. Per user request, only Chinese chars
+    // should appear in the search list. Pinyin is still searchable by typing
+    // Latin chars in the Hán tab, but results display headword-only.)
+    return `<button type="button" class="list-item${selected}" data-idx="${i}">
+      <span class="lang-dot ${langClass}"></span>
+      <span class="word-text${cjkClass}">${display}</span>
+      <span class="word-preview">${escapeHtml(preview)}</span>
+    </button>`;
+  }).join('');
+
+  $$('#sidebarList .list-item').forEach(el => {
+    el.addEventListener('click', () => {
+      const idx = parseInt(el.dataset.idx, 10);
+      selectSearchResult(idx);
+    });
+  });
+}
+
+function renderFavoritesList() {
+  const list = $('#sidebarList');
+  if (state.favorites.length === 0) {
+    list.innerHTML = `<div class="list-section-title"><span>Yêu thích</span></div><div class="list-empty">Chưa có từ yêu thích<span class="hint">Nhấn nút "Yêu thích" khi xem entry để lưu</span></div>`;
+    return;
+  }
+  list.innerHTML = `<div class="list-section-title"><span>Yêu thích (${state.favorites.length})</span><button class="clear-btn" id="clearFavorites">Xoá tất cả</button></div>` +
+    state.favorites.map((it, i) => {
+      const langClass = dictLangClass(it.dict);
+      return `<button type="button" class="list-item" data-idx="${i}">
+        <span class="lang-dot ${langClass}"></span>
+        <span class="word-text">${escapeHtml(it.headword)}</span>
+        <span class="word-remove" data-remove="${i}" title="Xoá">×</span>
+      </button>`;
+    }).join('');
+
+  $$('#sidebarList .list-item').forEach(el => {
+    el.addEventListener('click', (e) => {
+      if (e.target.classList.contains('word-remove')) {
+        e.stopPropagation();
+        const idx = parseInt(e.target.dataset.remove, 10);
+        state.favorites.splice(idx, 1);
+        localStorage.setItem('favorites', JSON.stringify(state.favorites));
+        renderSidebar();
+        return;
+      }
+      const idx = parseInt(el.dataset.idx, 10);
+      const it = state.favorites[idx];
+      const fwdKey = it.forwardDict || it.dict;
+      const dict = state.dicts[fwdKey];
+      const entry = { dict: it.dict, forwardDict: fwdKey, idx: it.idx, headword: it.headword, body: it.body || dict.bodies[it.idx] };
+      state.currentEntry = entry;
+      $('#searchInput').value = it.headword;
+      renderEntry(entry);
+    });
+  });
+
+  const clearBtn = $('#clearFavorites');
+  if (clearBtn) {
+    clearBtn.addEventListener('click', () => {
+      state.favorites = [];
+      localStorage.setItem('favorites', '[]');
+      renderSidebar();
+      showToast('Đã xoá tất cả yêu thích');
+    });
+  }
+}
+
+function selectSearchResult(idx) {
+  if (!state.searchResults[idx]) return;
+  const it = state.searchResults[idx];
+  const fwdKey = it.forwardDict || it.dict;
+  const dict = state.dicts[fwdKey];
+  const entry = {
+    dict: it.dict,             // display key (av/va/pv/vp/ek/ke/hv/vh)
+    forwardDict: fwdKey,        // underlying dict key for body lookup
+    idx: it.idx,
+    headword: it.headword,
+    body: it.body || dict.bodies[it.idx]
+  };
+  state.currentEntry = entry;
+  $('#searchInput').value = it.headword;
+  state.searchQuery = it.headword;
+  // Re-search to refresh list with the exact word
+  state.searchResults = searchAll(it.headword);
+  state.acSelectedIdx = -1;
+  renderSidebar();
+  renderEntry(entry);
+}
+
+function updateAcSelection() {
+  $$('#sidebarList .list-item').forEach((el, i) => {
+    el.classList.toggle('selected', i === state.acSelectedIdx);
+    if (i === state.acSelectedIdx) el.scrollIntoView({ block: 'nearest' });
+  });
+}
+
+// ---------- RENDER ENTRY ----------
+function renderWelcome() {
+  const av = state.dicts.av, pv = state.dicts.pv, ek = state.dicts.ek, ke = state.dicts.ke, hv = state.dicts.hv;
+  const quickWords = ['hello', 'bonjour', 'love', 'merci', '안녕', '사랑', 'nihao', '山', '水', '爱'];
+  const total = (av?.count||0) + (pv?.count||0) + (ek?.count||0) + (ke?.count||0) + (hv?.count||0);
+  $('#result').innerHTML = `
+    <div class="welcome">
+      <div class="logo-big">字</div>
+      <h1>Từ điển đa ngữ</h1>
+      <p>Anh ↔ Việt · Pháp ↔ Việt · Hàn ↔ Anh · Hán ↔ Việt — hơn ${(total/1000).toFixed(0)}.000 mục từ.
+         Gõ từ khoá vào ô tìm kiếm bên trái để bắt đầu. Nhấn nút <b>Xuôi / Ngược</b> để đổi hướng tra.</p>
+      <div class="stats">
+        <div class="stat">
+          <div class="stat-num">${((av?.count)||0).toLocaleString('vi-VN')}</div>
+          <div class="stat-label">Anh ↔ Việt</div>
+        </div>
+        <div class="stat">
+          <div class="stat-num">${((pv?.count)||0).toLocaleString('vi-VN')}</div>
+          <div class="stat-label">Pháp ↔ Việt</div>
+        </div>
+        <div class="stat">
+          <div class="stat-num">${(((ek?.count)||0) + ((ke?.count)||0)).toLocaleString('vi-VN')}</div>
+          <div class="stat-label">Hàn ↔ Anh</div>
+        </div>
+        <div class="stat">
+          <div class="stat-num">${((hv?.count)||0).toLocaleString('vi-VN')}</div>
+          <div class="stat-label">Hán ↔ Việt (Trích Dẫn)</div>
+        </div>
+        <div class="stat">
+          <div class="stat-num">${total.toLocaleString('vi-VN')}</div>
+          <div class="stat-label">Tổng cộng</div>
+        </div>
+      </div>
+      <div class="quick-words">
+        ${quickWords.map(w => `<button class="quick-word" data-word="${escapeAttr(w)}">${escapeHtml(w)}</button>`).join('')}
+      </div>
+    </div>`;
+  $$('.quick-word').forEach(b => b.addEventListener('click', () => {
+    $('#searchInput').value = b.dataset.word;
+    doSearch(b.dataset.word);
+  }));
+}
+
+function renderEntry(entry) {
+  if (!entry) { renderWelcome(); return; }
+  const langBadge = dictLangClass(entry.dict);
+  const langLabel = dictLabel(entry.dict);
+  const isFav = state.favorites.some(f => f.dict === entry.dict && f.idx === entry.idx);
+  const isHv = isHvDict(entry.dict) || isHvDict(entry.forwardDict);
+  // Get pinyin from the appropriate hv dict if available
+  let pinyinStr = '';
+  if (isHv) {
+    const hvDictKey = entry.forwardDict || entry.dict;
+    const hvDict = state.dicts[hvDictKey];
+    if (hvDict && hvDict.pinyin && typeof entry.idx === 'number') {
+      pinyinStr = hvDict.pinyin[entry.idx] || '';
+    }
+  }
+
+  // For HanViet: build a compact stroke image to display in the entry-header
+  // (right side, next to the headword) and a meta line (Unicode/pinyin/stroke
+  // count) to display below the header. Previously this was a separate
+  // stroke-block above the DSL body which caused the image to appear twice
+  // (once in the stroke-block, once inside the DSL body via [s]xxx.gif[/s]).
+  let headerStrokeImgHtml = '';
+  let metaLineHtml = '';
+  if (isHv) {
+    const firstChar = entry.headword.charAt(0);
+    const codepoint = firstChar.codePointAt(0).toString(16);
+    const gifName = codepoint + '.gif';
+    const hasGif = HV_GIFS_AVAILABLE.has(gifName);
+    headerStrokeImgHtml = hasGif
+      ? `<img class="entry-stroke-img" src="${GIFS_BASE}${gifName}" alt="Nét bút ${escapeAttr(firstChar)}" loading="lazy">`
+      : `<span class="entry-stroke-fallback" title="Ảnh nét bút chưa có">${escapeHtml(firstChar)}</span>`;
+    metaLineHtml = `
+      <div class="entry-meta-line">
+        ${pinyinStr ? `<span class="em-pinyin">[${escapeHtml(pinyinStr)}]</span>` : ''}
+        <span class="em-field"><b>Unicode:</b> U+${codepoint.toUpperCase()}</span>
+        <span class="em-field"><b>Số nét bút:</b> ${hasGif ? 'xem ảnh hoạt hình bên cạnh mục từ' : 'ảnh chưa có'}</span>
+      </div>`;
+  }
+
+  // For HanViet single-character entries: build a "derived compounds" panel.
+  // Works for hv (Trích Dẫn).
+  let compoundsHtml = '';
+  if (isHv && entry.headword.length === 1) {
+    const hvDictKey = entry.forwardDict || entry.dict;
+    const hvDict = state.dicts[hvDictKey];
+    const rc = entry.headword;
+    const compoundIdxs = hvDict && hvDict.compounds ? hvDict.compounds[rc] : null;
+    if (compoundIdxs && compoundIdxs.length > 0) {
+      // Show up to 100 derived compounds, sorted by headword length
+      const items = compoundIdxs
+        .slice(0, 200)
+        .map(i => ({
+          idx: i,
+          h: hvDict.words[i],
+          p: hvDict.pinyin ? hvDict.pinyin[i] : '',
+          m: (hvDict.bodies[i] || '').replace(/\[[^\]]*\]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 80)
+        }))
+        .sort((a, b) => a.h.length - b.h.length || a.h.localeCompare(b.h))
+        .slice(0, 100);
+      compoundsHtml = `
+        <div class="hv-compounds">
+          <div class="hv-compounds-title">
+            <span>Từ phái sinh</span>
+            <span class="badge">${items.length}</span>
+            <span style="font-size:12px;color:var(--text-muted);font-weight:400">từ chữ "${escapeHtml(rc)}" — click để tra (cùng từ điển)</span>
+          </div>
+          <div class="hv-compound-grid">
+            ${items.map(it => `
+              <button type="button" class="hv-compound-item" data-compound-idx="${it.idx}" data-compound-dict="${hvDictKey}">
+                <span class="ci-hanzi">${escapeHtml(it.h)}</span>
+                ${it.p ? `<span class="ci-pinyin">[${escapeHtml(it.p)}]</span>` : ''}
+                <span class="ci-meaning">${escapeHtml(it.m)}</span>
+              </button>
+            `).join('')}
+          </div>
+        </div>`;
+    }
+  }
+
+  $('#result').innerHTML = `
+    <div class="result-inner">
+      <div class="entry-header">
+        <div class="entry-headword">${escapeHtml(entry.headword)}</div>
+        ${headerStrokeImgHtml}
+        <button class="entry-action-btn entry-pron-btn" id="pronHeadwordBtn" title="Phát âm từ này" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+          Phát âm
+        </button>
+        <span class="entry-lang-badge ${langBadge}">${escapeHtml(langLabel)}</span>
+        <div class="entry-actions">
+          <div class="zoom-controls" title="Zoom và toàn màn hình">
+            <button class="zoom-btn" id="zoomOutBtn" title="Thu nhỏ (Ctrl −)" type="button">A−</button>
+            <span class="zoom-level" id="zoomLevel">100%</span>
+            <button class="zoom-btn" id="zoomInBtn" title="Phóng to (Ctrl +)" type="button">A+</button>
+            <button class="zoom-btn" id="zoomResetBtn" title="Về kích thước gốc (Ctrl 0)" type="button" style="font-size:11px">100</button>
+            <button class="zoom-btn" id="fullscreenBtn" title="Toàn màn hình (F)" type="button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
+            </button>
+          </div>
+          <button class="entry-action-btn ${isFav ? 'active' : ''}" id="favBtn" title="${isFav ? 'Bỏ yêu thích' : 'Thêm yêu thích'}" type="button">
+            <svg viewBox="0 0 24 24" fill="${isFav ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            ${isFav ? 'Đã lưu' : 'Yêu thích'}
+          </button>
+          <button class="entry-action-btn" id="copyBtn" title="Sao chép" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            Sao chép
+          </button>
+        </div>
+      </div>
+      ${metaLineHtml}
+      <div class="entry-body" id="entryBody">
+        ${renderDsl(entry.body, entry.headword, langBadge, entry.dict)}
+      </div>
+      ${compoundsHtml}
+    </div>`;
+
+  // Apply current zoom level to entry body
+  applyZoomToEntryBody();
+
+  // Wire up audio buttons (TTS)
+  $$('.audio').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const word = btn.dataset.word;
+      const accent = btn.dataset.accent;
+      speak(word, accent, btn);
+    });
+  });
+
+  // Pronounce headword button — accent is per-dict
+  const headAccent = dictAccent(entry.dict);
+  $('#pronHeadwordBtn').addEventListener('click', () => {
+    speak(entry.headword, headAccent, $('#pronHeadwordBtn'));
+  });
+
+  // Favorite toggle
+  $('#favBtn').addEventListener('click', () => toggleFavorite(entry));
+
+  // Copy
+  $('#copyBtn').addEventListener('click', () => {
+    const text = entry.headword + '\n\n' + entry.body.replace(/\[[^\]]*\]/g, '').replace(/\t/g, '').trim();
+    navigator.clipboard.writeText(text).then(() => showToast('Đã sao chép'));
+  });
+
+  // Cross-reference links (both .ref and HanViet .char-ref)
+  $$('.ref, .char-ref').forEach(r => {
+    r.addEventListener('click', () => {
+      const word = r.dataset.ref;
+      $('#searchInput').value = word;
+      doSearch(word);
+    });
+  });
+
+  // HanViet compound items — stay in the same HV dict (hv)
+  $$('.hv-compound-item').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const idx = parseInt(btn.dataset.compoundIdx, 10);
+      const hvDictKey = btn.dataset.compoundDict || 'hv';
+      const hvDict = state.dicts[hvDictKey];
+      if (!hvDict) return;
+      const newEntry = {
+        dict: hvDictKey,
+        forwardDict: hvDictKey,
+        idx: idx,
+        headword: hvDict.words[idx],
+        body: hvDict.bodies[idx]
+      };
+      state.currentEntry = newEntry;
+      $('#searchInput').value = newEntry.headword;
+      // Switch to the corresponding HV tab if not already
+      if (state.currentLang !== hvDictKey) {
+        state.currentLang = hvDictKey;
+        state.reverse = false;
+        updateLangTabsUI();
+        updateDirToggleUI();
+      }
+      doSearch(newEntry.headword);
+      renderEntry(newEntry);
+      // Scroll to top
+      $('#result').scrollTop = 0;
+    });
+  });
+
+  // Zoom + fullscreen controls
+  $('#zoomInBtn').addEventListener('click', () => zoomBy(1));
+  $('#zoomOutBtn').addEventListener('click', () => zoomBy(-1));
+  $('#zoomResetBtn').addEventListener('click', () => resetZoom());
+  $('#fullscreenBtn').addEventListener('click', () => openFullscreen(entry));
+}
+
+// ---------- ZOOM & FULLSCREEN ----------
+const ZOOM_MIN = 0.6;
+const ZOOM_MAX = 3.0;
+const ZOOM_STEP = 0.15;
+const BASE_FONT_PX = 15;
+
+function zoomBy(direction) {
+  // direction: 1 = zoom in, -1 = zoom out
+  const target = state.viewerOpen ? 'viewer' : 'main';
+  if (target === 'viewer') {
+    state.viewerZoomLevel = clamp(state.viewerZoomLevel + direction * ZOOM_STEP, ZOOM_MIN, ZOOM_MAX);
+    applyZoomToViewer();
+  } else {
+    state.zoomLevel = clamp(state.zoomLevel + direction * ZOOM_STEP, ZOOM_MIN, ZOOM_MAX);
+    localStorage.setItem('zoomLevel', String(state.zoomLevel));
+    applyZoomToEntryBody();
+  }
+  showToast(getZoomLabel() + ' • ' + Math.round(getCurrentZoom() * 100) + '%');
+}
+
+function resetZoom() {
+  if (state.viewerOpen) {
+    state.viewerZoomLevel = 1;
+    applyZoomToViewer();
+  } else {
+    state.zoomLevel = 1;
+    localStorage.setItem('zoomLevel', '1');
+    applyZoomToEntryBody();
+  }
+  showToast('Đã đặt lại zoom: 100%');
+}
+
+function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
+
+function getCurrentZoom() {
+  return state.viewerOpen ? state.viewerZoomLevel : state.zoomLevel;
+}
+
+function getZoomLabel() {
+  return state.viewerOpen ? 'Chế độ toàn màn hình' : 'Khung nội dung';
+}
+
+function applyZoomToEntryBody() {
+  const body = document.getElementById('entryBody');
+  if (!body) return;
+  const size = BASE_FONT_PX * state.zoomLevel;
+  body.style.fontSize = size.toFixed(2) + 'px';
+  // Also scale line-height proportionally to keep readability
+  body.style.lineHeight = (1.75 * Math.max(0.9, Math.min(1.1, state.zoomLevel))).toFixed(2);
+  // Scale the headword too (it lives outside #entryBody)
+  const headword = document.querySelector('.entry-headword');
+  if (headword) {
+    headword.style.fontSize = (28 * state.zoomLevel).toFixed(2) + 'px';
+  }
+  const lvl = document.getElementById('zoomLevel');
+  if (lvl) lvl.textContent = Math.round(state.zoomLevel * 100) + '%';
+}
+
+function applyZoomToViewer() {
+  const body = document.getElementById('viewerBodyInner');
+  if (!body) return;
+  const size = BASE_FONT_PX * state.viewerZoomLevel;
+  body.style.fontSize = size.toFixed(2) + 'px';
+  body.style.lineHeight = (1.75 * Math.max(0.9, Math.min(1.1, state.viewerZoomLevel))).toFixed(2);
+  // Scale the headword in viewer too
+  const headword = document.querySelector('#viewerBodyInner .entry-headword, #viewerBody .entry-headword');
+  if (headword) {
+    headword.style.fontSize = (28 * state.viewerZoomLevel).toFixed(2) + 'px';
+  }
+  const lvl = document.getElementById('viewerZoomLevel');
+  if (lvl) lvl.textContent = Math.round(state.viewerZoomLevel * 100) + '%';
+}
+
+function openFullscreen(entry) {
+  if (!entry) return;
+  state.viewerOpen = true;
+  state.viewerZoomLevel = state.zoomLevel; // start from current zoom
+  const overlay = document.getElementById('viewerOverlay');
+  const title = document.getElementById('viewerTitle');
+  const inner = document.getElementById('viewerBodyInner');
+  const langBadge = dictLangClass(entry.dict);
+  const langLabel = dictLabel(entry.dict);
+  const headAccent = dictAccent(entry.dict);
+  const isHv = isHvDict(entry.dict) || isHvDict(entry.forwardDict);
+  // Get pinyin from the appropriate hv dict if available
+  let pinyinStr = '';
+  if (isHv) {
+    const hvDictKey = entry.forwardDict || entry.dict;
+    const hvDict = state.dicts[hvDictKey];
+    if (hvDict && hvDict.pinyin && typeof entry.idx === 'number') {
+      pinyinStr = hvDict.pinyin[entry.idx] || '';
+    }
+  }
+  title.textContent = entry.headword + (pinyinStr ? ' [' + pinyinStr + '] ' : '  ·  ') + langLabel;
+
+  // Build stroke image + meta line for HanViet (same restructure as renderEntry).
+  // Image goes into the entry-header next to the headword; meta line below.
+  let headerStrokeImgHtml = '';
+  let metaLineHtml = '';
+  if (isHv) {
+    const firstChar = entry.headword.charAt(0);
+    const codepoint = firstChar.codePointAt(0).toString(16);
+    const gifName = codepoint + '.gif';
+    const hasGif = HV_GIFS_AVAILABLE.has(gifName);
+    headerStrokeImgHtml = hasGif
+      ? `<img class="entry-stroke-img" src="${GIFS_BASE}${gifName}" alt="Nét bút ${escapeAttr(firstChar)}" loading="lazy">`
+      : `<span class="entry-stroke-fallback" title="Ảnh nét bút chưa có">${escapeHtml(firstChar)}</span>`;
+    metaLineHtml = `
+      <div class="entry-meta-line">
+        ${pinyinStr ? `<span class="em-pinyin">[${escapeHtml(pinyinStr)}]</span>` : ''}
+        <span class="em-field"><b>Unicode:</b> U+${codepoint.toUpperCase()}</span>
+        <span class="em-field"><b>Số nét bút:</b> ${hasGif ? 'xem ảnh hoạt hình bên cạnh mục từ' : 'ảnh chưa có'}</span>
+      </div>`;
+  }
+
+  // Build compound panel for HanViet single-char entries (same as renderEntry).
+  // Works for hv.
+  let compoundsHtml = '';
+  if (isHv && entry.headword.length === 1) {
+    const hvDictKey = entry.forwardDict || entry.dict;
+    const hvDict = state.dicts[hvDictKey];
+    const rc = entry.headword;
+    const compoundIdxs = hvDict && hvDict.compounds ? hvDict.compounds[rc] : null;
+    if (compoundIdxs && compoundIdxs.length > 0) {
+      const items = compoundIdxs
+        .slice(0, 200)
+        .map(i => ({
+          idx: i,
+          h: hvDict.words[i],
+          p: hvDict.pinyin ? hvDict.pinyin[i] : '',
+          m: (hvDict.bodies[i] || '').replace(/\[[^\]]*\]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 80)
+        }))
+        .sort((a, b) => a.h.length - b.h.length || a.h.localeCompare(b.h))
+        .slice(0, 100);
+      compoundsHtml = `
+        <div class="hv-compounds">
+          <div class="hv-compounds-title">
+            <span>Từ phái sinh</span>
+            <span class="badge">${items.length}</span>
+          </div>
+          <div class="hv-compound-grid">
+            ${items.map(it => `
+              <button type="button" class="hv-compound-item" data-compound-idx="${it.idx}" data-compound-dict="${hvDictKey}">
+                <span class="ci-hanzi">${escapeHtml(it.h)}</span>
+                ${it.p ? `<span class="ci-pinyin">[${escapeHtml(it.p)}]</span>` : ''}
+                <span class="ci-meaning">${escapeHtml(it.m)}</span>
+              </button>
+            `).join('')}
+          </div>
+        </div>`;
+    }
+  }
+
+  inner.innerHTML = `
+    <div class="entry-header" style="margin-bottom:16px">
+      <div class="entry-headword" style="font-size:${(32 * Math.max(0.85, Math.min(1.4, state.viewerZoomLevel))).toFixed(0)}px">${escapeHtml(entry.headword)}</div>
+      ${headerStrokeImgHtml}
+      ${pinyinStr ? `<div style="font-size:22px;color:var(--hv);font-style:italic;font-weight:600;margin-left:12px">[${escapeHtml(pinyinStr)}]</div>` : ''}
+      <span class="entry-lang-badge ${langBadge}">${escapeHtml(langLabel)}</span>
+    </div>
+    ${metaLineHtml}
+    <div class="dsl-body">${renderDsl(entry.body, entry.headword, langBadge, entry.dict)}</div>
+    ${compoundsHtml}
+  `;
+  // Copy theme to overlay
+  const theme = document.documentElement.getAttribute('data-theme') || 'light';
+  // overlay already inherits via :root
+  overlay.classList.add('visible');
+  overlay.setAttribute('aria-hidden', 'false');
+  applyZoomToViewer();
+  // Wire up audio + ref clicks inside overlay
+  overlay.querySelectorAll('.audio').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      speak(btn.dataset.word, btn.dataset.accent, btn);
+    });
+  });
+  overlay.querySelectorAll('.ref, .char-ref').forEach(r => {
+    r.addEventListener('click', () => {
+      const word = r.dataset.ref;
+      // Close overlay, navigate to referenced word
+      closeFullscreen();
+      $('#searchInput').value = word;
+      doSearch(word);
+    });
+  });
+  // Compound clicks inside overlay — stay in the same HV dict (hv)
+  overlay.querySelectorAll('.hv-compound-item').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const idx = parseInt(btn.dataset.compoundIdx, 10);
+      const hvDictKey = btn.dataset.compoundDict || 'hv';
+      const hvDict = state.dicts[hvDictKey];
+      if (!hvDict) return;
+      // Re-render inside the overlay with the new entry
+      const newEntry = { dict: hvDictKey, forwardDict: hvDictKey, idx, headword: hvDict.words[idx], body: hvDict.bodies[idx] };
+      state.currentEntry = newEntry;
+      closeFullscreen();
+      $('#searchInput').value = newEntry.headword;
+      if (state.currentLang !== hvDictKey) {
+        state.currentLang = hvDictKey;
+        state.reverse = false;
+        updateLangTabsUI();
+        updateDirToggleUI();
+      }
+      doSearch(newEntry.headword);
+      renderEntry(newEntry);
+    });
+  });
+  // Pronounce button in toolbar
+  const pronBtn = document.getElementById('viewerPronBtn');
+  pronBtn.onclick = () => speak(entry.headword, headAccent, pronBtn);
+  // Focus overlay for keyboard
+  overlay.focus();
+  showToast('Toàn màn hình • Esc để thoát • Ctrl +/− để zoom');
+}
+
+function closeFullscreen() {
+  state.viewerOpen = false;
+  const overlay = document.getElementById('viewerOverlay');
+  overlay.classList.remove('visible');
+  overlay.setAttribute('aria-hidden', 'true');
+  document.getElementById('viewerBodyInner').innerHTML = '';
+}
+
+// ---------- FAVORITES ----------
+function toggleFavorite(entry) {
+  const idx = state.favorites.findIndex(f => f.dict === entry.dict && f.idx === entry.idx);
+  if (idx >= 0) {
+    state.favorites.splice(idx, 1);
+    showToast('Đã bỏ yêu thích');
+  } else {
+    state.favorites.unshift({
+      dict: entry.dict,
+      forwardDict: entry.forwardDict || entry.dict,
+      idx: entry.idx,
+      headword: entry.headword,
+      body: entry.body,
+      ts: Date.now()
+    });
+    showToast('Đã thêm yêu thích');
+  }
+  localStorage.setItem('favorites', JSON.stringify(state.favorites));
+  renderSidebar();
+  renderEntry(entry);
+}
+
+// ---------- SEARCH ACTIONS ----------
+// ---------- AUTO DIRECTION DETECTION ----------
+// When the user types a query whose script clearly belongs to the *other*
+// side of a bidirectional dictionary, automatically flip the direction so
+// they get results without having to manually click the dir-toggle.
+//
+// Examples:
+//   - In "Anh ↔ Hàn" forward mode, typing Hangul → flip to reverse (Hàn → Anh)
+//   - In "Anh ↔ Hàn" reverse mode, typing pure Latin → flip to forward (Anh → Hàn)
+//   - In "Anh ↔ Việt" forward mode, typing Vietnamese-unique chars → flip to reverse
+//   - In "Hán ↔ Việt" reverse mode, typing CJK chars → flip to forward
+//
+// Detection is intentionally conservative — only flips on unambiguous script
+// signals. Pure-ASCII Latin in av/pv is NOT auto-flipped because it could be
+// either English or Vietnamese-without-diacritics.
+//
+// Returns true if direction was flipped (caller should refresh dir-toggle UI).
+function maybeAutoFlipDirection(query) {
+  if (!query || !query.trim()) return false;
+  const lang = state.currentLang;
+  if (!BIDIR_PAIRS[lang]) return false; // not bidirectional — no flip
+
+  const wordLang = detectWordLang(query);
+  if (!wordLang) return false;
+
+  let shouldFlip = false;
+  if (lang === 'ek') {
+    // Anh ↔ Hàn: forward = English headwords, reverse = Hangul headwords
+    if (wordLang === 'hangul') shouldFlip = !state.reverse;     // forward → reverse
+    else if (wordLang === 'latin') shouldFlip = state.reverse;  // reverse → forward
+  } else if (lang === 'av') {
+    // Anh ↔ Việt: forward = English headwords, reverse = Vietnamese body
+    if (wordLang === 'vi') shouldFlip = !state.reverse;
+  } else if (lang === 'pv') {
+    // Pháp ↔ Việt: forward = French headwords, reverse = Vietnamese body
+    if (wordLang === 'vi') shouldFlip = !state.reverse;
+    else if (wordLang === 'fr') shouldFlip = state.reverse;
+  } else if (lang === 'hv') {
+    // Hán ↔ Việt: forward = Hanzi headwords (Latin = pinyin IME), reverse = Vietnamese body
+    if (wordLang === 'vi') shouldFlip = !state.reverse;
+    else if (wordLang === 'cjk') shouldFlip = state.reverse;
+  }
+
+  if (shouldFlip) {
+    state.reverse = !state.reverse;
+    updateDirToggleUI();
+    return true;
+  }
+  return false;
+}
+
+const doSearch = debounce(function(query, opts) {
+  opts = opts || {};
+  state.searchQuery = query;
+  if (!query || !query.trim()) {
+    state.searchResults = [];
+    state.acSelectedIdx = -1;
+    if (state.currentTab === 'search') renderSidebar();
+    return;
+  }
+  // Auto-flip direction if query script doesn't match current direction.
+  // Skip when caller explicitly disables it (e.g. user just clicked dir-toggle).
+  if (!opts.skipAutoFlip) {
+    maybeAutoFlipDirection(query);
+  }
+  const results = searchAll(query);
+  state.searchResults = results;
+  state.acSelectedIdx = -1;
+  if (state.currentTab === 'search') renderSidebar();
+}, SEARCH_DEBOUNCE);
+
+function doImmediateLookup(query) {
+  if (!query || !query.trim()) return;
+  // Auto-flip direction (same logic as doSearch) so Enter / dblclick also benefit.
+  maybeAutoFlipDirection(query);
+  const results = searchAll(query);
+  state.searchResults = results;
+  state.searchQuery = query;
+  if (results.length === 0) {
+    if (state.currentTab === 'search') renderSidebar();
+    showToast('Không tìm thấy: ' + query);
+    return;
+  }
+  const qnorm = normalize(query);
+  let exact = results.find(r => normalize(r.headword) === qnorm);
+  if (!exact) exact = results[0];
+  const fwdKey = exact.forwardDict || exact.dict;
+  const dict = state.dicts[fwdKey];
+  const entry = {
+    dict: exact.dict,
+    forwardDict: fwdKey,
+    idx: exact.idx,
+    headword: exact.headword,
+    body: exact.body || dict.bodies[exact.idx]
+  };
+  state.currentEntry = entry;
+  state.acSelectedIdx = -1;
+  if (state.currentTab === 'search') renderSidebar();
+  renderEntry(entry);
+}
+
+// ---------- DOUBLE-CLICK WORD SEARCH ----------
+// When user double-clicks a word inside the entry body, detect the language
+// of that word and dispatch to the most relevant dictionary/direction:
+//   - CJK chars      → hv forward (Hán → Việt)
+//   - Hangul         → ke forward (Hàn → Anh)
+//   - Vietnamese     → reverse direction of current bidir dict (av/pv/hv)
+//   - Pure Latin     → forward search; in pv stays in pv (assume French),
+//                      otherwise defaults to av (Anh → Việt)
+// Excludes clicks on interactive elements (buttons, .ref links, .hv-compound-item)
+// which already have their own single-click behavior.
+
+// Characters uniquely Vietnamese (NOT shared with French): ă/ơ/ư/đ + tone marks
+const VI_UNIQUE_REGEX = /[ăĂơƠưƯđĐạảãặằắẳẵấầẩẫậẹẻẽệếềểễỉịọỏõộồổỗợờớởỡụủũựừứửữỳỵỷỹẠẢÃẶẰẮẲẴẤẦẨẪẬẸẺẼỆẾỀỂỄỈỊỌỎÕỘỒỔỖỢỜỚỞỠỤỦŨỰỪỨỬỮỲỴỶỸ]/;
+const CJK_REGEX = /[\u4e00-\u9fff\u3400-\u4dbf\uf900-\ufaff]/;
+const HANGUL_REGEX = /[\uac00-\ud7af\u1100-\u11ff\u3130-\u318f]/;
+
+function detectWordLang(word) {
+  if (!word) return null;
+  if (CJK_REGEX.test(word)) return 'cjk';
+  if (HANGUL_REGEX.test(word)) return 'hangul';
+  if (VI_UNIQUE_REGEX.test(word)) return 'vi';
+  // French-only chars (ç, œ, Ç, Œ) — present in French, not in Vietnamese
+  if (/[çœÇŒ]/.test(word)) return 'fr';
+  // Pure Latin (English, French without diacritics, or Vietnamese without diacritics)
+  if (/[a-zA-Zà-ÿÀ-Ÿ]/.test(word)) return 'latin';
+  return null;
+}
+
+// Strip leading/trailing punctuation/whitespace from a double-clicked selection
+function cleanDoubleClickWord(raw) {
+  if (!raw) return '';
+  return raw
+    .trim()
+    .replace(/^[\s,.;:!?'"\(\)\[\]«»“”"''`~@#$%^&*+=|\\/<>—–·•◦‣→←]+$/, '')
+    .replace(/^[\s,.;:!?'"\(\)\[\]«»“”"''`~@#$%^&*+=|\\/<>—–·•◦‣→←]+/, '')
+    .replace(/[\s,.;:!?'"\(\)\[\]«»“”"''`~@#$%^&*+=|\\/<>—–·•◦‣→←]+$/, '')
+    .trim();
+}
+
+function dictDoubleClickSearch(rawWord) {
+  const word = cleanDoubleClickWord(rawWord);
+  if (!word || word.length < 1 || word.length > 80) return;
+  // Require at least one letter/CJK/Hangul char
+  if (!/[a-zA-Zà-ÿÀ-Ÿ\uac00-\ud7af\u4e00-\u9fff\u3400-\u4dbf\uf900-\ufaff]/.test(word)) return;
+
+  const lang = detectWordLang(word);
+  if (!lang) {
+    showToast('Không nhận dạng được ngôn ngữ: "' + word + '"');
+    return;
+  }
+
+  const cur = state.currentLang;
+  let targetLang = cur;
+  let targetReverse = state.reverse;
+
+  if (lang === 'cjk') {
+    targetLang = 'hv';
+    targetReverse = false;
+  } else if (lang === 'hangul') {
+    // Hangul word → "Anh ↔ Hàn" tab + reverse direction = Hàn → Anh
+    // (internally uses the 'ke' dict via BIDIR_PAIRS.ek.reverse)
+    // Previously this set targetLang='ke' which has NO corresponding UI tab,
+    // leaving no tab highlighted and the direction toggle hidden — so users
+    // thought the Korean dictionary was broken.
+    targetLang = 'ek';
+    targetReverse = true;
+  } else if (lang === 'vi') {
+    // Vietnamese word → reverse direction of any bidir dict (av/pv/hv).
+    // Prefer staying in the same dict family if currently bidirectional.
+    if (cur === 'av' || cur === 'pv' || cur === 'hv') {
+      targetLang = cur;
+      targetReverse = true;
+    } else {
+      targetLang = 'av';
+      targetReverse = true;
+    }
+  } else if (lang === 'fr') {
+    // French-specific chars → pv forward
+    targetLang = 'pv';
+    targetReverse = false;
+  } else if (lang === 'latin') {
+    // Pure Latin without diacritics — could be English or French.
+    // Heuristic: stay in pv if currently there (assume French),
+    //            stay in ek/ke if currently there (assume English, switch direction if needed),
+    //            otherwise default to av forward.
+    if (cur === 'pv') {
+      targetLang = 'pv';
+      targetReverse = false;
+    } else if (cur === 'ek') {
+      targetLang = 'ek';
+      targetReverse = false;
+    } else if (cur === 'ke') {
+      targetLang = 'ek';     // English word → Anh → Hàn
+      targetReverse = false;
+    } else {
+      targetLang = 'av';
+      targetReverse = false;
+    }
+  }
+
+  // Apply state and UI
+  if (state.currentLang !== targetLang || state.reverse !== targetReverse) {
+    state.currentLang = targetLang;
+    state.reverse = targetReverse;
+    updateLangTabsUI();
+    updateDirToggleUI();
+  }
+
+  // Update input + run search (auto-open first/exact match)
+  $('#searchInput').value = word;
+  doImmediateLookup(word);
+
+  // Visual feedback — use reverse-direction label when applicable so the
+  // toast matches what the user actually sees in the dir-toggle.
+  let targetLabel = FILES[targetLang] ? FILES[targetLang].label : targetLang;
+  if (targetReverse && BIDIR_PAIRS[targetLang]) {
+    targetLabel = BIDIR_PAIRS[targetLang].label;
+  }
+  showToast('Tra: "' + word + '" → ' + targetLabel);
+}
+
+// ---------- RANDOM ----------
+function showRandom() {
+  // Pick a random dictionary among the active ones
+  let allDicts;
+  if (state.currentLang === 'all') {
+    allDicts = ['av', 'pv', 'ek', 'ke', 'hv'];
+  } else if (state.reverse) {
+    // Reverse mode: only pick from underlying forward dicts that have bodies we can search
+    if (state.currentLang === 'ek') allDicts = ['ke'];
+    else allDicts = [state.currentLang];  // av/pv/hv use same dict, just reverse search
+  } else {
+    allDicts = [state.currentLang];
+  }
+  const dictKey = allDicts[Math.floor(Math.random() * allDicts.length)];
+  const dict = state.dicts[dictKey];
+  if (!dict) return;
+  let attempts = 0;
+  while (attempts < 80) {
+    const idx = Math.floor(Math.random() * dict.words.length);
+    const hw = dict.words[idx];
+    if (!hw) { attempts++; continue; }
+    if (hw.length < 1 || hw.length > 24) { attempts++; continue; }
+    if (/[a-zA-ZÀ-ỹ\uac00-\ud7af\u4e00-\u9fff\u3400-\u4dbf\uf900-\ufaff]/.test(hw)) {
+      // Determine display key based on direction
+      let displayKey = dictKey;
+      if (state.reverse && BIDIR_PAIRS[state.currentLang]) {
+        displayKey = BIDIR_PAIRS[state.currentLang].reverse;
+      }
+      const entry = { dict: displayKey, forwardDict: dictKey, idx, headword: hw, body: dict.bodies[idx] };
+      state.currentEntry = entry;
+      $('#searchInput').value = hw;
+      doSearch(hw);
+      renderEntry(entry);
+      return;
+    }
+    attempts++;
+  }
+  // fallback: just pick anything
+  const idx = Math.floor(Math.random() * dict.words.length);
+  const hw = dict.words[idx];
+  let displayKey = dictKey;
+  if (state.reverse && BIDIR_PAIRS[state.currentLang]) {
+    displayKey = BIDIR_PAIRS[state.currentLang].reverse;
+  }
+  const entry = { dict: displayKey, forwardDict: dictKey, idx, headword: hw, body: dict.bodies[idx] };
+  state.currentEntry = entry;
+  $('#searchInput').value = hw;
+  doSearch(hw);
+  renderEntry(entry);
+}
+
+// ---------- RESIZE HANDLE (split view) ----------
+// Allow user to drag the divider between sidebar and content to resize them.
+// Persists the chosen width in localStorage so it survives page reloads.
+const SIDEBAR_MIN = 220;
+const SIDEBAR_MAX_RATIO = 0.7;  // sidebar can't be more than 70% of viewport width
+const SIDEBAR_DEFAULT = 260;
+
+function setupResizeHandle() {
+  const handle = document.getElementById('resizeHandle');
+  if (!handle) return;
+  // Restore saved width
+  const saved = parseFloat(localStorage.getItem('sidebarW'));
+  if (saved && saved >= SIDEBAR_MIN) {
+    document.documentElement.style.setProperty('--sidebar-w', saved + 'px');
+  } else {
+    document.documentElement.style.setProperty('--sidebar-w', SIDEBAR_DEFAULT + 'px');
+  }
+  let dragging = false;
+  let startX = 0;
+  let startW = 0;
+  const onMove = (e) => {
+    if (!dragging) return;
+    const x = e.touches ? e.touches[0].clientX : e.clientX;
+    const delta = x - startX;
+    let w = startW + delta;
+    const maxW = Math.floor(window.innerWidth * SIDEBAR_MAX_RATIO);
+    w = Math.max(SIDEBAR_MIN, Math.min(maxW, w));
+    document.documentElement.style.setProperty('--sidebar-w', w + 'px');
+  };
+  const onUp = () => {
+    if (!dragging) return;
+    dragging = false;
+    handle.classList.remove('dragging');
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+    // Persist
+    const cur = document.documentElement.style.getPropertyValue('--sidebar-w');
+    if (cur) localStorage.setItem('sidebarW', cur);
+  };
+  const onDown = (e) => {
+    dragging = true;
+    startX = e.touches ? e.touches[0].clientX : e.clientX;
+    const cur = document.documentElement.style.getPropertyValue('--sidebar-w') || (SIDEBAR_DEFAULT + 'px');
+    startW = parseFloat(cur) || SIDEBAR_DEFAULT;
+    handle.classList.add('dragging');
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    e.preventDefault();
+  };
+  handle.addEventListener('mousedown', onDown);
+  handle.addEventListener('touchstart', onDown, { passive: false });
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('touchmove', onMove, { passive: false });
+  document.addEventListener('mouseup', onUp);
+  document.addEventListener('touchend', onUp);
+  // Double-click resets to default width
+  handle.addEventListener('dblclick', () => {
+    document.documentElement.style.setProperty('--sidebar-w', SIDEBAR_DEFAULT + 'px');
+    localStorage.setItem('sidebarW', String(SIDEBAR_DEFAULT));
+    showToast('Đã đặt lại kích thước');
+  });
+}
+
+// ---------- EVENT WIRING ----------
+// Update lang-tab labels and active state based on state.currentLang + state.reverse
+function updateLangTabsUI() {
+  $$('.lang-tab').forEach(t => {
+    t.classList.toggle('active', t.dataset.lang === state.currentLang);
+  });
+}
+// Compact labels for dir-toggle to save horizontal header space.
+const DIR_TOGGLE_LABELS = {
+  av:  { fwd: '↷ Anh→Việt', rev: '↶ Việt→Anh' },
+  pv:  { fwd: '↷ Pháp→Việt', rev: '↶ Việt→Pháp' },
+  ek:  { fwd: '↷ Anh→Hàn', rev: '↶ Hàn→Anh' },
+  hv:  { fwd: '↷ Hán→Việt', rev: '↶ Việt→Hán' }
+};
+function updateDirToggleUI() {
+  const dir = $('#dirToggle');
+  const lbl = $('#dirLabel');
+  if (!dir || !lbl) return;
+  // Only show toggle for bidirectional dicts (av/pv/ek/hv). Hide for "all".
+  const isBidir = BIDIR_PAIRS[state.currentLang] !== undefined;
+  dir.style.display = isBidir ? '' : 'none';
+  if (!isBidir) return;
+  const labels = DIR_TOGGLE_LABELS[state.currentLang] || { fwd: '↷', rev: '↶' };
+  if (state.reverse) {
+    dir.classList.add('reverse');
+    lbl.textContent = labels.rev;
+  } else {
+    dir.classList.remove('reverse');
+    lbl.textContent = labels.fwd;
+  }
+}
+
+function setupEvents() {
+  const input = $('#searchInput');
+  const clear = $('#searchClear');
+
+  input.addEventListener('input', () => {
+    clear.classList.toggle('visible', input.value.length > 0);
+    doSearch(input.value);
+  });
+
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowDown' && state.searchResults.length > 0) {
+      e.preventDefault();
+      state.acSelectedIdx = Math.min(state.acSelectedIdx + 1, state.searchResults.length - 1);
+      updateAcSelection();
+    } else if (e.key === 'ArrowUp' && state.searchResults.length > 0) {
+      e.preventDefault();
+      state.acSelectedIdx = Math.max(state.acSelectedIdx - 1, 0);
+      updateAcSelection();
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (state.acSelectedIdx >= 0 && state.searchResults[state.acSelectedIdx]) {
+        selectSearchResult(state.acSelectedIdx);
+      } else if (state.searchResults.length > 0) {
+        selectSearchResult(0);
+      } else {
+        doImmediateLookup(input.value);
+      }
+    } else if (e.key === 'Escape') {
+      input.value = '';
+      clear.classList.remove('visible');
+      state.searchQuery = '';
+      state.searchResults = [];
+      state.acSelectedIdx = -1;
+      renderSidebar();
+      input.blur();
+    }
+  });
+
+  clear.addEventListener('click', () => {
+    input.value = '';
+    clear.classList.remove('visible');
+    state.searchQuery = '';
+    state.searchResults = [];
+    state.acSelectedIdx = -1;
+    renderSidebar();
+    input.focus();
+  });
+
+  // Sidebar tabs
+  $$('.sidebar-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      $$('.sidebar-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      state.currentTab = tab.dataset.tab;
+      renderSidebar();
+      if (state.currentTab === 'search') input.focus();
+    });
+  });
+
+  // Language tabs
+  $$('.lang-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      $$('.lang-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      state.currentLang = tab.dataset.lang;
+      // When switching tab, reset direction to forward (Xuôi) by default
+      state.reverse = false;
+      updateDirToggleUI();
+      if (input.value.trim()) doSearch(input.value);
+    });
+  });
+
+  // Direction toggle (Xuôi / Ngược)
+  $('#dirToggle').addEventListener('click', () => {
+    if (!BIDIR_PAIRS[state.currentLang]) return;
+    state.reverse = !state.reverse;
+    updateDirToggleUI();
+    // User explicitly toggled direction — skip auto-flip so we don't undo it.
+    if (input.value.trim()) doSearch(input.value, { skipAutoFlip: true });
+  });
+
+  // Theme toggle
+  const savedTheme = localStorage.getItem('theme') || 'light';
+  document.documentElement.setAttribute('data-theme', savedTheme);
+  $('#themeBtn').addEventListener('click', () => {
+    const cur = document.documentElement.getAttribute('data-theme');
+    const next = cur === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+  });
+
+  // Random
+  $('#randomBtn').addEventListener('click', showRandom);
+
+  // Initial UI state for direction toggle
+  updateDirToggleUI();
+
+  // Resizable split view (sidebar / content)
+  setupResizeHandle();
+
+  // Viewer (fullscreen overlay) controls
+  document.getElementById('viewerClose').addEventListener('click', closeFullscreen);
+  document.getElementById('viewerZoomIn').addEventListener('click', () => zoomBy(1));
+  document.getElementById('viewerZoomOut').addEventListener('click', () => zoomBy(-1));
+  document.getElementById('viewerZoomReset').addEventListener('click', resetZoom);
+
+  // Warm up TTS on first interaction (any click or keydown)
+  const warmupHandler = () => {
+    warmupTts();
+    document.removeEventListener('click', warmupHandler);
+    document.removeEventListener('keydown', warmupHandler);
+  };
+  document.addEventListener('click', warmupHandler);
+  document.addEventListener('keydown', warmupHandler);
+
+  // Keyboard shortcut: / to focus search, p to pronounce current entry
+  // Ctrl +/- for zoom, F for fullscreen, Esc to close viewer
+  document.addEventListener('keydown', (e) => {
+    // Ctrl + + / = / - / 0 for zoom
+    if (e.ctrlKey || e.metaKey) {
+      if (e.key === '+' || e.key === '=') {
+        e.preventDefault();
+        zoomBy(1);
+        return;
+      }
+      if (e.key === '-' || e.key === '_') {
+        e.preventDefault();
+        zoomBy(-1);
+        return;
+      }
+      if (e.key === '0') {
+        e.preventDefault();
+        resetZoom();
+        return;
+      }
+    }
+    // Esc closes fullscreen viewer
+    if (e.key === 'Escape' && state.viewerOpen) {
+      e.preventDefault();
+      closeFullscreen();
+      return;
+    }
+    // F opens fullscreen viewer (only when an entry is shown and not typing)
+    if ((e.key === 'f' || e.key === 'F') && document.activeElement !== input && state.currentEntry && !state.viewerOpen) {
+      e.preventDefault();
+      openFullscreen(state.currentEntry);
+      return;
+    }
+    if (e.key === '/' && document.activeElement !== input) {
+      e.preventDefault();
+      input.focus();
+    } else if ((e.key === 'p' || e.key === 'P') && document.activeElement !== input && state.currentEntry) {
+      e.preventDefault();
+      const accent = dictAccent(state.currentEntry.dict);
+      speak(state.currentEntry.headword, accent, $('#pronHeadwordBtn'));
+    }
+  });
+
+  // Double-click word inside entry content → auto-search in the most
+  // relevant dictionary based on detected language of the word.
+  // Ignore double-clicks on interactive elements that already have their
+  // own click behavior (audio buttons, ref links, compound items, action buttons).
+  const resultEl = document.getElementById('result');
+  if (resultEl) {
+    resultEl.addEventListener('dblclick', (e) => {
+      // Skip if user double-clicked an interactive element
+      const interactive = e.target.closest(
+        'button, .audio, .ref, .char-ref, .hv-compound-item, .quick-word, a, input, .zoom-btn, .entry-action-btn, .entry-pron-btn'
+      );
+      if (interactive) return;
+      // Get selected word (from selection, since dblclick selects a word in most browsers)
+      const sel = window.getSelection && window.getSelection();
+      let word = sel && sel.toString ? sel.toString() : '';
+      // Fallback to textContent of the immediate text node target if selection is empty
+      if (!word && e.target && e.target.nodeType === Node.TEXT_NODE) {
+        word = e.target.textContent.trim();
+      }
+      if (!word && e.target && e.target.textContent) {
+        // For CJK chars, browsers usually select just one char on dblclick
+        // — try to grab the text under the cursor
+        word = e.target.textContent.trim().split(/\s+/)[0] || '';
+      }
+      if (word) {
+        e.preventDefault();
+        dictDoubleClickSearch(word);
+      }
+    });
+    // Visual hint: cursor indicates clickable text inside entry body
+    // (applied via CSS .entry-dblclick-hint class)
+    resultEl.classList.add('entry-dblclick-hint');
+  }
+}
+
+// ---------- BOOT ----------
+setupEvents();
+init();
+
+</script>
+</body>
+</html>
