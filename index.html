@@ -1339,6 +1339,26 @@ function warmupTts() {
 
 function pickVoice(accent) {
   // accent: 'us' | 'uk' | 'fr' | 'vi' | 'ko' | 'zh' | 'default'
+  // Priority voice names for each accent — avoid novelty voices
+  const priorityNames = {
+    'fr': ['Thomas', 'Jacques', 'Marie', 'Daniel', 'Google français'],
+    'en': ['Samantha', 'Daniel', 'Google US English', 'Alex', 'Victoria'],
+    'uk': ['Daniel \(English \(United Kingdom\)\)', 'Google UK English', 'Kate'],
+    'vi': ['Google tiếng Việt'],
+    'ko': ['Google 한국의'],
+    'zh': ['Google 中文', 'Ting-Ting', 'Mei-Jia']
+  };
+
+  // 1. Try priority voices by name (most reliable)
+  const nameList = priorityNames[accent] || [];
+  for (const namePattern of nameList) {
+    for (const v of tts.voices) {
+      if (new RegExp('\\b' + namePattern + '\\b').test(v.name)) {
+        return v;
+      }
+    }
+  }
+
   const preferences = {
     'us': ['en-us', 'en_us', 'en'],
     'uk': ['en-gb', 'en_gb', 'en-uk', 'en'],
@@ -1349,25 +1369,31 @@ function pickVoice(accent) {
     'default': ['en-us', 'en-gb', 'en', 'fr-fr', 'fr', 'vi-vn', 'vi', 'ko-kr', 'ko', 'zh-cn', 'zh']
   };
   const prefs = preferences[accent] || preferences['default'];
-  // 1. exact lang match
+
+  // 2. exact lang match — but skip novelty voices
+  const noveltyNames = /\b(Eddy|Flo|Grandma|Grandpa|Reed|Rocko|Sandy|Shelley|Amélie)\b/i;
   for (const p of prefs) {
     if (tts.voicesByLang[p] && tts.voicesByLang[p].length > 0) {
+      const good = tts.voicesByLang[p].find(v => !noveltyNames.test(v.name));
+      if (good) return good;
       return tts.voicesByLang[p][0];
     }
   }
-  // 2. prefix match (e.g. voice lang 'fr-ca' should match prefix 'fr')
+  // 3. prefix match
   for (const p of prefs) {
     const prefix = p.split('-')[0];
     for (const lang in tts.voicesByLang) {
       if (lang.startsWith(prefix)) {
+        const good = tts.voicesByLang[lang].find(v => !noveltyNames.test(v.name));
+        if (good) return good;
         return tts.voicesByLang[lang][0];
       }
     }
   }
-  // 3. name-based match (some voices have non-standard lang codes but French/Chinese names)
+  // 4. name-based fallback
   if (accent === 'fr') {
     for (const v of tts.voices) {
-      if (/\b(fr|fran|french|français|francais)\b/i.test(v.name)) return v;
+      if (/\b(fr|fran|french|français|francais)\b/i.test(v.name) && !noveltyNames.test(v.name)) return v;
     }
   } else if (accent === 'zh') {
     for (const v of tts.voices) {
