@@ -1428,17 +1428,16 @@ function speak(word, accent, btn) {
     }
 
     const utter = new SpeechSynthesisUtterance(word);
+    // Always set lang based on accent FIRST — ensures correct pronunciation
+    utter.lang = accent === 'fr' ? 'fr-FR' :
+                 accent === 'uk' ? 'en-GB' :
+                 accent === 'vi' ? 'vi-VN' :
+                 accent === 'ko' ? 'ko-KR' :
+                 accent === 'zh' ? 'zh-CN' :
+                 'en-US';
     const voice = pickVoice(accent);
     if (voice) {
       utter.voice = voice;
-      utter.lang = voice.lang;
-    } else {
-      utter.lang = accent === 'fr' ? 'fr-FR' :
-                   accent === 'uk' ? 'en-GB' :
-                   accent === 'vi' ? 'vi-VN' :
-                   accent === 'ko' ? 'ko-KR' :
-                   accent === 'zh' ? 'zh-CN' :
-                   'en-US';
     }
     utter.rate = 0.9;
     utter.pitch = 1;
