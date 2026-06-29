@@ -3264,10 +3264,12 @@ function setupEvents() {
   document.addEventListener('keydown', warmupHandler);
 
   // Keyboard shortcut: / to focus search, p to pronounce current entry
-  // Ctrl +/- for zoom, F for fullscreen, Esc to close viewer
+  // Cmd/Ctrl +/- lets the browser handle native full-page zoom
+  // Plain +/− (without modifier) zooms only the entry content area
+  // F for fullscreen, Esc to close viewer
   document.addEventListener('keydown', (e) => {
-    // Ctrl + + / = / - / 0 for zoom
-    if (e.ctrlKey || e.metaKey) {
+    // Plain +/= / -/_ (no Ctrl/Cmd) → content-area zoom (only when not typing in search)
+    if (!(e.ctrlKey || e.metaKey || e.altKey) && document.activeElement !== input) {
       if (e.key === '+' || e.key === '=') {
         e.preventDefault();
         zoomBy(1);
