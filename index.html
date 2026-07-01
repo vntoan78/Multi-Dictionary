@@ -1166,6 +1166,10 @@ a:hover { text-decoration: underline; }
     <button class="icon-btn" id="viewerPronBtn" title="Phát âm" type="button" style="color:var(--accent)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
     </button>
+    <button class="icon-btn" id="viewerPronBtnUk" title="Phát âm (UK)" type="button" style="color:var(--accent);display:none">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+      <span style="font-size:9px;position:absolute;bottom:1px;right:1px;font-weight:700">UK</span>
+    </button>
   </div>
   <div class="viewer-body" id="viewerBody">
     <div class="viewer-body-inner" id="viewerBodyInner"></div>
@@ -1379,11 +1383,13 @@ function pickVoice(accent) {
       return tts.voicesByLang[p][0];
     }
   }
-  // 3. prefix match
+  // 3. prefix match — but for uk, avoid matching en-us voices
   for (const p of prefs) {
     const prefix = p.split('-')[0];
     for (const lang in tts.voicesByLang) {
       if (lang.startsWith(prefix)) {
+        // For UK accent: skip en-us voices in fallback
+        if (accent === 'uk' && /en[-_]us/i.test(lang)) continue;
         const good = tts.voicesByLang[lang].find(v => !noveltyNames.test(v.name));
         if (good) return good;
         return tts.voicesByLang[lang][0];
@@ -2426,10 +2432,21 @@ function renderEntry(entry) {
       <div class="entry-header">
         <div class="entry-headword">${escapeHtml(entry.headword)}</div>
         ${headerStrokeImgHtml}
+        ${entry.dict === 'av' || entry.dict === 'ek' ? `
+        <button class="entry-action-btn entry-pron-btn" id="pronHeadwordBtnUs" title="Phát âm (US)" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+          US
+        </button>
+        <button class="entry-action-btn entry-pron-btn" id="pronHeadwordBtnUk" title="Phát âm (UK)" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+          UK
+        </button>
+        ` : `
         <button class="entry-action-btn entry-pron-btn" id="pronHeadwordBtn" title="Phát âm từ này" type="button">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
           Phát âm
         </button>
+        `}
         <span class="entry-lang-badge ${langBadge}">${escapeHtml(langLabel)}</span>
         <div class="entry-actions">
           <div class="zoom-controls" title="Zoom và toàn màn hình">
@@ -2472,11 +2489,17 @@ function renderEntry(entry) {
     });
   });
 
-  // Pronounce headword button — accent is per-dict
+  // Pronounce headword button(s) — accent is per-dict
   const headAccent = dictAccent(entry.dict);
-  $('#pronHeadwordBtn').addEventListener('click', () => {
-    speak(entry.headword, headAccent, $('#pronHeadwordBtn'));
-  });
+  if (entry.dict === 'av' || entry.dict === 'ek') {
+    const usBtn = $('#pronHeadwordBtnUs');
+    const ukBtn = $('#pronHeadwordBtnUk');
+    if (usBtn) usBtn.addEventListener('click', () => speak(entry.headword, 'us', usBtn));
+    if (ukBtn) ukBtn.addEventListener('click', () => speak(entry.headword, 'uk', ukBtn));
+  } else {
+    const btn = $('#pronHeadwordBtn');
+    if (btn) btn.addEventListener('click', () => speak(entry.headword, headAccent, btn));
+  }
 
   // Favorite toggle
   $('#favBtn').addEventListener('click', () => toggleFavorite(entry));
@@ -2742,9 +2765,19 @@ function openFullscreen(entry) {
       renderEntry(newEntry);
     });
   });
-  // Pronounce button in toolbar
+  // Pronounce button(s) in toolbar
   const pronBtn = document.getElementById('viewerPronBtn');
-  pronBtn.onclick = () => speak(entry.headword, headAccent, pronBtn);
+  const pronBtnUk = document.getElementById('viewerPronBtnUk');
+  if (entry.dict === 'av' || entry.dict === 'ek') {
+    pronBtn.title = 'Phát âm (US)';
+    if (pronBtnUk) pronBtnUk.style.display = '';
+    pronBtn.onclick = () => speak(entry.headword, 'us', pronBtn);
+    if (pronBtnUk) pronBtnUk.onclick = () => speak(entry.headword, 'uk', pronBtnUk);
+  } else {
+    pronBtn.title = 'Phát âm';
+    if (pronBtnUk) pronBtnUk.style.display = 'none';
+    pronBtn.onclick = () => speak(entry.headword, headAccent, pronBtn);
+  }
   // Focus overlay for keyboard
   overlay.focus();
   showToast('Toàn màn hình • Esc để thoát • Ctrl +/− để zoom');
@@ -3303,8 +3336,10 @@ function setupEvents() {
       input.focus();
     } else if ((e.key === 'p' || e.key === 'P') && document.activeElement !== input && state.currentEntry) {
       e.preventDefault();
-      const accent = dictAccent(state.currentEntry.dict);
-      speak(state.currentEntry.headword, accent, $('#pronHeadwordBtn'));
+      // For av/ek: default to US; Shift+P for UK
+      const accent = (state.currentEntry.dict === 'av' || state.currentEntry.dict === 'ek') && e.shiftKey ? 'uk' : dictAccent(state.currentEntry.dict);
+      const btnId = accent === 'uk' ? 'pronHeadwordBtnUk' : (state.currentEntry.dict === 'av' || state.currentEntry.dict === 'ek') ? 'pronHeadwordBtnUs' : 'pronHeadwordBtn';
+      speak(state.currentEntry.headword, accent, $('#' + btnId));
     }
   });
 
