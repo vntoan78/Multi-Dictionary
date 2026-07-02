@@ -1056,6 +1056,15 @@ a:hover { text-decoration: underline; }
     max-height: 42vh;
     border-right: none;
     border-bottom: 1px solid var(--border);
+    transition: max-height .25s ease;
+    overflow: hidden;
+  }
+  .sidebar.collapsed {
+    max-height: 42px; /* only search input visible */
+  }
+  .sidebar.collapsed .sidebar-list,
+  .sidebar.collapsed .sidebar-tabs-row {
+    display: none;
   }
   .resize-handle { display: none; }  /* no horizontal resize on mobile */
   .header { padding: 0 8px; gap: 6px; height: 44px; overflow-x: auto; }
@@ -2361,6 +2370,8 @@ function selectSearchResult(idx) {
   state.acSelectedIdx = -1;
   renderSidebar();
   renderEntry(entry);
+  // On mobile: collapse sidebar after selecting a word
+  collapseMobileSidebar();
 }
 
 function updateAcSelection() {
@@ -2368,6 +2379,18 @@ function updateAcSelection() {
     el.classList.toggle('selected', i === state.acSelectedIdx);
     if (i === state.acSelectedIdx) el.scrollIntoView({ block: 'nearest' });
   });
+}
+
+// ---------- MOBILE SIDEBAR COLLAPSE ----------
+function collapseMobileSidebar() {
+  const sidebar = document.querySelector('.sidebar');
+  if (sidebar && window.innerWidth <= 820) {
+    sidebar.classList.add('collapsed');
+  }
+}
+function expandMobileSidebar() {
+  const sidebar = document.querySelector('.sidebar');
+  if (sidebar) sidebar.classList.remove('collapsed');
 }
 
 // ---------- RENDER ENTRY ----------
@@ -3252,7 +3275,12 @@ function setupEvents() {
 
   input.addEventListener('input', () => {
     clear.classList.toggle('visible', input.value.length > 0);
+    expandMobileSidebar(); // expand sidebar when user starts typing
     doSearch(input.value);
+  });
+
+  input.addEventListener('focus', () => {
+    expandMobileSidebar();
   });
 
   input.addEventListener('keydown', (e) => {
