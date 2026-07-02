@@ -1434,8 +1434,26 @@ function speak(word, accent, btn) {
   }
   if (!word || !word.trim()) return;
 
-  // Ensure voices are loaded
-  if (!tts.ready) loadTtsVoices();
+  // Ensure voices are loaded — retry up to 3 times if async
+  if (!tts.ready) {
+    loadTtsVoices();
+    if (!tts.ready && speechSynthesis.getVoices().length > 0) {
+      loadTtsVoices(); // second try
+    }
+  }
+  // For UK: force reload voices if still empty (async browsers)
+  if (accent === 'uk' && tts.voices.length === 0) {
+    const fresh = speechSynthesis.getVoices();
+    if (fresh.length > 0) {
+      tts.voices = fresh;
+      for (const v of tts.voices) {
+        const lang = (v.lang || '').toLowerCase();
+        if (!tts.voicesByLang[lang]) tts.voicesByLang[lang] = [];
+        tts.voicesByLang[lang].push(v);
+      }
+      tts.ready = true;
+    }
+  }
 
   // Warm up on first use
   warmupTts();
@@ -1470,30 +1488,58 @@ function speak(word, accent, btn) {
     }
 
     const utter = new SpeechSynthesisUtterance(word);
-    // Always set lang based on accent FIRST — ensures correct pronunciation
-    utter.lang = accent === 'fr' ? 'fr-FR' :
-                 accent === 'uk' ? 'en-GB' :
-                 accent === 'vi' ? 'vi-VN' :
-                 accent === 'ko' ? 'ko-KR' :
-                 accent === 'zh' ? 'zh-CN' :
-                 'en-US';
-    const voice = pickVoice(accent);
-    if (voice) {
-      // For UK: always use the voice we found (pickVoice already filtered carefully)
-      // For others: only use voice if its language prefix matches the target
-      if (accent === 'uk') {
-        utter.voice = voice;
+
+    // ---- Voice selection: separate logic for UK vs others ----
+    if (accent === 'uk') {
+      utter.lang = 'en-GB';
+      // Direct UK voice hunt — bypass pickVoice entirely for reliability
+      let ukVoice = null;
+      console.log('[TTS-UK] All voices:', tts.voices.map(v => v.name + ' [' + v.lang + ']'));
+      // 1) Exact lang match: en-gb
+      for (const v of tts.voices) {
+        if ((v.lang || '').toLowerCase() === 'en-gb') { ukVoice = v; break; }
+      }
+      console.log('[TTS-UK] Step1 exact en-gb:', ukVoice ? ukVoice.name : 'none');
+      // 2) Name contains UK/GB/British markers AND is English
+      if (!ukVoice) {
+        for (const v of tts.voices) {
+          const n = (v.name || '').toLowerCase();
+          if ((n.includes('uk ') || n.includes('british') || n.includes('united kingdom'))
+              && (v.lang || '').toLowerCase().startsWith('en')) { ukVoice = v; break; }
+        }
+      }
+      console.log('[TTS-UK] Step2 name match:', ukVoice ? ukVoice.name : 'none');
+      // 3) Any English voice whose lang is NOT us
+      if (!ukVoice) {
+        for (const v of tts.voices) {
+          const l = (v.lang || '').toLowerCase();
+          if (l.startsWith('en') && !l.includes('us')) { ukVoice = v; break; }
+        }
+      }
+      console.log('[TTS-UK] Step3 non-US:', ukVoice ? ukVoice.name : 'none');
+      if (ukVoice) {
+        utter.voice = ukVoice;
+        console.log('[TTS-UK] USING:', ukVoice.name, ukVoice.lang);
       } else {
+        showToast('Không tìm thấy giọng UK trên trình duyệt này.');
+        console.error('[TTS-UK] No UK voice found at all!');
+        return;
+      }
+    } else {
+      // US / FR / VI / KO / ZH — use pickVoice as before
+      utter.lang = accent === 'fr' ? 'fr-FR' :
+                   accent === 'vi' ? 'vi-VN' :
+                   accent === 'ko' ? 'ko-KR' :
+                   accent === 'zh' ? 'zh-CN' :
+                   'en-US';
+      const voice = pickVoice(accent);
+      if (voice) {
         const voicePrefix = voice.lang.toLowerCase().split(/[-_]/)[0];
         const targetPrefix = utter.lang.toLowerCase().split('-')[0];
         if (voicePrefix === targetPrefix) {
           utter.voice = voice;
         }
       }
-    } else if (accent === 'uk') {
-      // No UK voice available at all — warn user
-      showToast('Không tìm thấy giọng UK. Trình duyệt cần cài đặt giọng Anh-Anh.');
-      return;
     }
     utter.rate = 0.9;
     utter.pitch = 1;
