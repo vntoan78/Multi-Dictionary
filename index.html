@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="Từ điển đa ngữ offline — Anh ↔ Việt · Pháp ↔ Việt · Hàn ↔ Anh · Hán ↔ Việt. HTML5 SPA.">
+<meta name="description" content="Từ điển đa ngữ offline — Anh ↔ Việt · Pháp ↔ Việt · Hàn ↔ Anh · Hàn ↔ Việt · Hán ↔ Việt. HTML5 SPA.">
 <meta name="theme-color" content="#1a73e8">
 <title>Từ điển đa ngữ</title>
 <style>
@@ -159,6 +159,8 @@ a:hover { text-decoration: underline; }
 .lang-tab[data-lang="pv"] .dot { background: var(--fr); }
 .lang-tab[data-lang="ek"] .dot { background: var(--en); }
 .lang-tab[data-lang="ke"] .dot { background: var(--ko); }
+.lang-tab[data-lang="kv"] .dot { background: var(--ko); }
+.lang-tab[data-lang="vk"] .dot { background: var(--vi); }
 .lang-tab[data-lang="hv"] .dot { background: var(--hv); }
 .lang-tab[data-lang="hv2"] .dot { background: #c2410c; }
 .lang-tab[data-lang="all"] .dot {
@@ -1103,6 +1105,7 @@ a:hover { text-decoration: underline; }
       <button class="lang-tab active" data-lang="av" role="tab"><span class="dot"></span>Anh ↔ Việt</button>
       <button class="lang-tab" data-lang="pv" role="tab"><span class="dot"></span>Pháp ↔ Việt</button>
       <button class="lang-tab" data-lang="ek" role="tab"><span class="dot"></span>Anh ↔ Hàn</button>
+      <button class="lang-tab" data-lang="kv" role="tab"><span class="dot"></span>Hàn ↔ Việt</button>
       <button class="lang-tab" data-lang="hv" role="tab"><span class="dot"></span>Hán ↔ Việt <small>Trích Dẫn</small></button>
       <button class="lang-tab" data-lang="all" role="tab"><span class="dot"></span>Tất cả</button>
     </div>
@@ -1190,6 +1193,7 @@ a:hover { text-decoration: underline; }
    MULTILINGUAL DICTIONARY SPA - EN/FR/VI/KO/HAN
    Data: LacViet Anh-Viet (333K) + Phap-Viet (129K)
          + Dong-A English-Korean (134K) + Korean-English (94K)
+         + Vietnamese-Korean (134K) + Korean-Vietnamese (94K) [AI-translated]
          + HanViet Trichdan (44.8K Hán tự)
    =================================================================== */
 
@@ -1203,6 +1207,8 @@ const FILES = {
   pv:  { data: 'pv.json.gz',  lang: 'fr', label: 'Pháp → Việt',         accent: 'fr' },
   ek:  { data: 'ek.json.gz',  lang: 'en', label: 'Anh → Hàn',           accent: 'us' },
   ke:  { data: 'ke.json.gz',  lang: 'ko', label: 'Hàn → Anh',           accent: 'ko' },
+  kv:  { data: 'kv.json.gz',  lang: 'ko', label: 'Hàn → Việt',          accent: 'ko' },
+  vk:  { data: 'vk.json.gz',  lang: 'vi', label: 'Việt → Hàn',          accent: 'vi' },
   hv:  { data: 'hv.json.gz',  lang: 'zh', label: 'Hán → Việt (Trích Dẫn)', accent: 'zh' }
 };
 // Reverse-direction mapping: when user toggles "Ngược", we re-use the same
@@ -1210,11 +1216,12 @@ const FILES = {
 // va = Việt → Anh (uses av data), vp = Việt → Pháp (uses pv),
 // vh  = Việt → Hán (Trích Dẫn, uses hv)
 const REVERSE_MAP = { va: 'av', vp: 'pv', vh: 'hv' };
-// For ek/ke we already have both directions in separate files — toggle just swaps the dict key.
+// For ek/ke and kv/vk we have both directions in separate files — toggle just swaps the dict key.
 const BIDIR_PAIRS = {
   av:  { reverse: 'va',  label: 'Việt → Anh',          accent: 'vi' },
   pv:  { reverse: 'vp',  label: 'Việt → Pháp',         accent: 'vi' },
   ek:  { reverse: 'ke',  label: 'Hàn → Anh',           accent: 'ko' },
+  kv:  { reverse: 'vk',  label: 'Việt → Hàn',          accent: 'vi' },
   hv:  { reverse: 'vh',  label: 'Việt → Hán (Trích Dẫn)', accent: 'vi' }
 };
 
@@ -1229,7 +1236,7 @@ const SEARCH_DEBOUNCE = 120;
 // ---------- STATE ----------
 const state = {
   dicts: {},           // { av: {name, words:[], bodies:[], prefix1, prefix2}, pv: {...} }
-  currentLang: 'av',   // 'av' | 'pv' | 'ek' | 'ke' | 'hv' | 'all'  (forward key)
+  currentLang: 'av',   // 'av' | 'pv' | 'ek' | 'ke' | 'kv' | 'vk' | 'hv' | 'all'  (forward key)
   reverse: false,      // when true and currentLang is bidirectional, search reverse direction
   currentEntry: null,  // {dict, idx, headword, body}
   favorites: JSON.parse(localStorage.getItem('favorites') || '[]'),
@@ -1727,7 +1734,7 @@ async function init() {
       }
     } catch (e) { console.warn('Could not load hv_gifs manifest:', e); }
 
-    const totalSteps = 12;
+    const totalSteps = 16;
     let step = 0;
     const updateProgress = (msg) => {
       step++;
@@ -1744,6 +1751,8 @@ async function init() {
     state.dicts.pv  = await loadDict('pv',  updateProgress);
     state.dicts.ek  = await loadDict('ek',  updateProgress);
     state.dicts.ke  = await loadDict('ke',  updateProgress);
+    state.dicts.kv  = await loadDict('kv',  updateProgress);
+    state.dicts.vk  = await loadDict('vk',  updateProgress);
     state.dicts.hv  = await loadDict('hv',  updateProgress);
     updateProgress('Đang khởi tạo giao diện...');
     renderWelcome();
@@ -2121,7 +2130,7 @@ function searchAll(query) {
   let results = [];
   if (state.currentLang === 'all') {
     // In "Tất cả" mode, search forward in every dict.
-    for (const dk of ['av', 'pv', 'ek', 'ke', 'hv']) {
+    for (const dk of ['av', 'pv', 'ek', 'ke', 'kv', 'vk', 'hv']) {
       if (state.dicts[dk]) {
         if (dk === 'hv' && /^[a-z]+$/i.test(query)) {
           results = results.concat(searchPinyin(query, dk));
@@ -2137,6 +2146,9 @@ function searchAll(query) {
     if (lang === 'ek') {
       // ek reverse = Hàn → Anh = forward search on ke (already a real dict)
       results = searchPrefix('ke', query);
+    } else if (lang === 'kv') {
+      // kv reverse = Việt → Hàn = forward search on vk (already a real dict)
+      results = searchPrefix('vk', query);
     } else if (lang === 'hv') {
       // Hán → Việt (Trích Dẫn) reverse = Việt → Hán (Trích Dẫn): search body of hv
       results = searchReverse('hv', 'vh', query);
@@ -2193,13 +2205,15 @@ function displayDictKey() {
   return lang;
 }
 function dictLangClass(dictKey) {
-  // returns 'en' | 'fr' | 'ko' | 'hv' for color dot/badge
+  // returns 'en' | 'fr' | 'ko' | 'hv' | 'vi' for color dot/badge
   return ({ av: 'en', va: 'vi', pv: 'fr', vp: 'vi', ek: 'en', ke: 'ko',
+            kv: 'ko', vk: 'vi',
             hv: 'hv', vh: 'vi' })[dictKey] || 'en';
 }
 function dictAccent(dictKey) {
   // returns TTS accent for the headword of this dict
   return ({ av: 'us', va: 'vi', pv: 'fr', vp: 'vi', ek: 'us', ke: 'ko',
+            kv: 'ko', vk: 'vi',
             hv: 'zh', vh: 'vi' })[dictKey] || 'us';
 }
 function dictLabel(dictKey) {
@@ -2395,14 +2409,14 @@ function expandMobileSidebar() {
 
 // ---------- RENDER ENTRY ----------
 function renderWelcome() {
-  const av = state.dicts.av, pv = state.dicts.pv, ek = state.dicts.ek, ke = state.dicts.ke, hv = state.dicts.hv;
-  const quickWords = ['hello', 'bonjour', 'love', 'merci', '안녕', '사랑', 'nihao', '山', '水', '爱'];
-  const total = (av?.count||0) + (pv?.count||0) + (ek?.count||0) + (ke?.count||0) + (hv?.count||0);
+  const av = state.dicts.av, pv = state.dicts.pv, ek = state.dicts.ek, ke = state.dicts.ke, kv = state.dicts.kv, vk = state.dicts.vk, hv = state.dicts.hv;
+  const quickWords = ['hello', 'bonjour', 'love', 'merci', '안녕', '사랑', 'xin chào', 'yêu', 'nihao', '山', '水', '爱'];
+  const total = (av?.count||0) + (pv?.count||0) + (ek?.count||0) + (ke?.count||0) + (kv?.count||0) + (vk?.count||0) + (hv?.count||0);
   $('#result').innerHTML = `
     <div class="welcome">
       <div class="logo-big">字</div>
       <h1>Từ điển đa ngữ</h1>
-      <p>Anh ↔ Việt · Pháp ↔ Việt · Hàn ↔ Anh · Hán ↔ Việt — hơn ${(total/1000).toFixed(0)}.000 mục từ.
+      <p>Anh ↔ Việt · Pháp ↔ Việt · Hàn ↔ Anh · Hàn ↔ Việt · Hán ↔ Việt — hơn ${(total/1000).toFixed(0)}.000 mục từ.
          Gõ từ khoá vào ô tìm kiếm bên trái để bắt đầu. Nhấn nút <b>Xuôi / Ngược</b> để đổi hướng tra.</p>
       <div class="stats">
         <div class="stat">
@@ -2416,6 +2430,10 @@ function renderWelcome() {
         <div class="stat">
           <div class="stat-num">${(((ek?.count)||0) + ((ke?.count)||0)).toLocaleString('vi-VN')}</div>
           <div class="stat-label">Hàn ↔ Anh</div>
+        </div>
+        <div class="stat">
+          <div class="stat-num">${(((kv?.count)||0) + ((vk?.count)||0)).toLocaleString('vi-VN')}</div>
+          <div class="stat-label">Hàn ↔ Việt <span style="font-size:0.7em;opacity:0.7">(AI dịch)</span></div>
         </div>
         <div class="stat">
           <div class="stat-num">${((hv?.count)||0).toLocaleString('vi-VN')}</div>
@@ -3128,10 +3146,11 @@ function showRandom() {
   // Pick a random dictionary among the active ones
   let allDicts;
   if (state.currentLang === 'all') {
-    allDicts = ['av', 'pv', 'ek', 'ke', 'hv'];
+    allDicts = ['av', 'pv', 'ek', 'ke', 'kv', 'vk', 'hv'];
   } else if (state.reverse) {
     // Reverse mode: only pick from underlying forward dicts that have bodies we can search
     if (state.currentLang === 'ek') allDicts = ['ke'];
+    else if (state.currentLang === 'kv') allDicts = ['vk'];
     else allDicts = [state.currentLang];  // av/pv/hv use same dict, just reverse search
   } else {
     allDicts = [state.currentLang];
